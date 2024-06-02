@@ -1,7 +1,11 @@
-find_package(GTest)
+find_package(GTest REQUIRED)
 
-if(GTEST_FOUND)
+if(GTest_FOUND)
   message(STATUS "Enable testing")
+ 
+  set(GTEST_LIBRARY ${GTEST_LIBRARIES})
+  set(GTEST_MAIN_LIBRARY ${GTEST_MAIN_LIBRARIES})
+
   enable_testing()
   file(GLOB_RECURSE UNIT_TEST_SOURCE ${PROJECT_SOURCE_DIR}/test/*_unittest.cc) 
   include_directories(${GTEST_INCLUDE_DIR} ${PROJECT_SOURCE_DIR}/test)

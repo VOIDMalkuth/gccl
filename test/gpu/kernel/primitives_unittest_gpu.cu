@@ -18,6 +18,14 @@ namespace gccl {
 
 namespace {
 
+__global__ void Copy128bGlobal(CopyArgs args) {
+  int tid = threadIdx.x;
+  int n_threads = blockDim.x;
+  args.tid = tid;
+  args.n_threads = n_threads;
+  Copy128b(&args);
+}
+
 class TestPrimitives : public testing::Test {};
 
 TEST_F(TestPrimitives, Copy128b) {

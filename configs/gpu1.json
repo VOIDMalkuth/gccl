@@ -2,7 +2,7 @@
   "world_size": 1,
   "n_blocks": 32,
   "n_threads": 256,
-  "max_feat_size": 256,
+  "max_feat_size": 4096,
   "buffer_size_log2": 22,
   "rings": [[0], [0]
   ],
