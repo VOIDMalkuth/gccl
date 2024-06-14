@@ -44,10 +44,10 @@ class Coordinator {
   const std::string &GetHostname() const { return peer_infos_[rank_].hostname; }
 
   void RootInit(const gcclUniqueId &id);  // For root
-  void BuildPeerInfo(const gcclUniqueId &id);
+  void BuildPeerInfo(const gcclUniqueId &id, const int device_id);
   const std::vector<ProcInfo> &GetPeerInfos() const { return peer_infos_; }
 
-  void ConnectToRoot(const gcclUniqueId &id);
+  void ConnectToRoot(const gcclUniqueId &id, const int device_id);
   void SendIntTo(int peer_id, int val);
   void SendBinstreamTo(
       int peer_id,

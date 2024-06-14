@@ -43,7 +43,7 @@ void Coordinator::RootInit(const gcclUniqueId &id) {
   root_receiver_->bind(addr);
 }
 
-void Coordinator::ConnectToRoot(const gcclUniqueId &id) {
+void Coordinator::ConnectToRoot(const gcclUniqueId &id, const int device_id) {
   std::string addr = UniqueIdToString(id);
   send_to_root_ = std::make_unique<zmq::socket_t>(*zmq_ctx_, ZMQ_PUSH);
   send_to_root_->connect(addr);
@@ -52,12 +52,13 @@ void Coordinator::ConnectToRoot(const gcclUniqueId &id) {
   int pid = getpid();
   zmq_sendmore_int32(send_to_root_.get(), rank_);
   zmq_sendmore_string(send_to_root_.get(), GetHostName());
+  zmq_sendmore_int32(send_to_root_.get(), device_id);
   zmq_sendmore_int32(send_to_root_.get(), pid);
   zmq_send_string(send_to_root_.get(), recv_addr_);
 }
 
-void Coordinator::BuildPeerInfo(const gcclUniqueId &id) {
-  ConnectToRoot(id);
+void Coordinator::BuildPeerInfo(const gcclUniqueId &id, const int device_id) {
+  ConnectToRoot(id, device_id);
   if (IsRoot()) {
     peer_infos_.resize(n_peers_);
 
@@ -65,14 +66,23 @@ void Coordinator::BuildPeerInfo(const gcclUniqueId &id) {
       to_peers_.emplace_back(nullptr);
     }
     std::map<std::string, int> hosts_cnt;
+
+    bool ignore_device_id = false;
+
     for (int i = 0; i < n_peers_; ++i) {
       int peer_rank = zmq_recv_int32(root_receiver_.get());
       std::string peer_hostname = zmq_recv_string(root_receiver_.get());
+      int device_id = zmq_recv_int32(root_receiver_.get());
       int pid = zmq_recv_int32(root_receiver_.get());
       std::string peer_addr = zmq_recv_string(root_receiver_.get());
-      LOG(INFO) << "Get the info of peer " << peer_rank << " on address "
+
+      LOG(INFO) << "Get the info of peer " << peer_rank << " device_id " << device_id << " on address "
                 << peer_addr;
       CHECK_LT(peer_rank, n_peers_);
+
+      if (device_id == -1) {
+        ignore_device_id = true;
+      }
 
       to_peers_[peer_rank] =
           std::move(std::make_unique<zmq::socket_t>(*zmq_ctx_, ZMQ_PUSH));
@@ -82,10 +92,13 @@ void Coordinator::BuildPeerInfo(const gcclUniqueId &id) {
       peer_infos_[peer_rank].pid = pid;
       peer_infos_[peer_rank].hostname = peer_hostname;
       peer_infos_[peer_rank].rank = peer_rank;
+      peer_infos_[peer_rank].dev_id = device_id;
     }
-    for (int i = 0; i < n_peers_; ++i) {
-      const std::string &hostname = peer_infos_[i].hostname;
-      peer_infos_[i].dev_id = hosts_cnt[hostname]++;
+    if (ignore_device_id) {
+      for (int i = 0; i < n_peers_; ++i) {
+        const std::string &hostname = peer_infos_[i].hostname;
+        peer_infos_[i].dev_id = hosts_cnt[hostname]++;
+      }
     }
   }
   Broadcast(peer_infos_);

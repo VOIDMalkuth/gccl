@@ -24,7 +24,7 @@ TEST_F(TestMPIInit, CommInitRank) {
   LOG(INFO) << "My rank is " << rank << ", world size is " << world_size;
   MPI_Bcast((void *)&id, sizeof(gcclUniqueId), MPI_BYTE, 0, MPI_COMM_WORLD);
   gcclComm_t comm;
-  CommInitRank(&comm, world_size, id, rank);
+  CommInitRank(&comm, world_size, id, rank, -1);
   int comm_rank = comm->GetRank();
   int comm_n_ranks = comm->GetNRanks();
   EXPECT_EQ(comm_rank, rank);

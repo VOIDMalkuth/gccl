@@ -28,7 +28,7 @@ class TestAPI : public testing::Test {
       id = GetUniqueId();
     }
     MPI_Bcast((void*)&id, sizeof(gcclUniqueId), MPI_BYTE, 0, MPI_COMM_WORLD);
-    CommInitRank(&comm, world_size, id, rank);
+    CommInitRank(&comm, world_size, id, rank, -1);
   }
 
  protected:

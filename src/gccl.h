@@ -57,7 +57,7 @@ int GetDeviceId(gcclComm_t comm);
 // Initialize a communication environment and store the communicator in `comm`.
 // Each process specifies the size of the communication group `nranks`, the same communication
 // id `comm_id` and their own rank.
-void CommInitRank(gcclComm_t *comm, int nranks, gcclUniqueId comm_id, int rank);
+void CommInitRank(gcclComm_t *comm, int nranks, gcclUniqueId comm_id, int rank, int device_id);
 
 // Partition a graph under the communicator `comm`.
 // `(n, xadj, adjncy)` is the csr graph format which is provided  by the root process

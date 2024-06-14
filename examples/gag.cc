@@ -55,7 +55,7 @@ void run() {
   if (rank == 0) id = gccl::GetUniqueId();
   MPI_Bcast((void *)&id, sizeof(gccl::gcclUniqueId), MPI_BYTE, 0,
             MPI_COMM_WORLD);
-  CommInitRank(&comm, world_size, id, rank);
+  CommInitRank(&comm, world_size, id, rank, 0);
 
   gccl::gcclCommInfo_t info;
 

@@ -69,7 +69,7 @@ Communicator *CreateCommunicator(Coordinator *coordinator, Config *config,
 }
 
 void CommInitRank(gcclComm_t *comm, int nranks, gcclUniqueId comm_id,
-                  int rank) {
+                  int rank, int device_id) {
   Initialize();
 
   auto config_file = GetEnvParam("CONFIG", std::string(""));
@@ -84,7 +84,7 @@ void CommInitRank(gcclComm_t *comm, int nranks, gcclUniqueId comm_id,
   //   dev_id = gccl_global.config->rank_to_dev_id[rank];
   // }
   gccl_global.coordinator->SetRankAndNPeers(rank, nranks);
-  gccl_global.coordinator->BuildPeerInfo(comm_id);
+  gccl_global.coordinator->BuildPeerInfo(comm_id, device_id);
   *comm = CreateCommunicator(gccl_global.coordinator.get(),
                              gccl_global.config.get(), nranks, rank);
   gccl_global.coordinator->Barrier();

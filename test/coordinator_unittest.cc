@@ -25,7 +25,7 @@ class TestCoordinator : public testing::Test {
     gcclUniqueId id = StringToUniqueId("tcp://127.0.0.1:12322");
     coor_[0].RootInit(id);
     MultiThreading(world_size_,
-                   [this, &id](int rank) { coor_[rank].BuildPeerInfo(id); });
+                   [this, &id](int rank) { coor_[rank].BuildPeerInfo(id, -1); });
   }
 
  protected:
