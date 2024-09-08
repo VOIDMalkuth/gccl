@@ -19,7 +19,7 @@
 
 namespace gccl {
 
-static void gccl_shm_open(const char* shmname, int shmsize, void** shmPtr,
+static void gccl_shm_open(const char* shmname, size_t shmsize, void** shmPtr,
                           void** devShmPtr, int create) {
   *shmPtr = nullptr;
   int fd = shm_open(shmname, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);

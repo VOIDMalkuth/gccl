@@ -38,7 +38,7 @@ class CommScheduler {
       const Graph &g, const std::vector<std::map<int, int>> &local_mappings,
       const std::vector<int> &parts, int nparts);
 
-  void DispatchData(Coordinator *coor, char *data, int feat_size, int data_size,
+  void DispatchData(Coordinator *coor, char *data, size_t feat_size, size_t data_size,
                     int local_n_nodes, char *local_data, int no_remote);
 
   void LoadCachedPartition(Coordinator *coor, const std::string &dir, int *sgn,

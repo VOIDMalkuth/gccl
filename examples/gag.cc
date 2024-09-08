@@ -20,9 +20,9 @@ DEFINE_string(input_graph, "", "Input graph file");
 DEFINE_string(cached_graph_dir, "", "Cached graph dir");
 
 void BcastString(std::string *str, int rank) {
-  const int MAX_BYTES = 128;
+  const size_t MAX_BYTES = 128;
   char buff[MAX_BYTES];
-  int size;
+  size_t size;
   if (rank == 0) {
     memcpy(buff, str->data(), str->size());
     size = str->size();
@@ -100,8 +100,8 @@ void run() {
   LOG(INFO) << "My n nodes " << my_n_nodes;
   int *input;
   std::vector<int> cpu_input(my_n_nodes * feat_size, 1);
-  cudaMalloc((void **)&input, my_n_nodes * feat_size * sizeof(int));
-  cudaMemcpy(input, cpu_input.data(), my_n_nodes * feat_size * sizeof(int),
+  cudaMalloc((void **)&input, static_cast<size_t>(my_n_nodes) * feat_size * sizeof(int));
+  cudaMemcpy(input, cpu_input.data(), static_cast<size_t>(my_n_nodes) * feat_size * sizeof(int),
              cudaMemcpyHostToDevice);
 
   comm->GetCoordinator()->Barrier();

@@ -20,6 +20,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstdint>
 
 #include "conn/gccl_net.h"
 #include "conn/ibvwrap.h"
@@ -70,7 +71,7 @@ GCCL_PARAM(IbTc, "IB_TC", 0);
 static gcclResult_t gcclIbMalloc(void** ptr, size_t size) {
   size_t page_size = sysconf(_SC_PAGESIZE);
   void* p;
-  int size_aligned = ROUNDUP(size, page_size);
+  size_t size_aligned = ROUNDUP(size, page_size);
   int ret = posix_memalign(&p, page_size, size_aligned);
   if (ret != 0) return gcclSystemError;
   memset(p, 0, size);
@@ -688,12 +689,12 @@ gcclResult_t gcclRecvCheck(struct gcclIbRecvComm* comm) {
   return gcclSuccess;
 }
 
-gcclResult_t gcclIbTest(void* request, int* done, int* size);
+gcclResult_t gcclIbTest(void* request, int* done, size_t* size);
 
 #define REG_ALIGN (4096)
 
 // Cache previous MRs to avoid registering/unregistering for each Isend/Irecv
-gcclResult_t gcclIbGetMr(struct gcclIbVerbs* verbs, void* data, int size,
+gcclResult_t gcclIbGetMr(struct gcclIbVerbs* verbs, void* data, size_t size,
                          struct gcclIbMr** mrRet) {
   uint64_t addr = (uint64_t)data;
   int elem = -1;
@@ -746,7 +747,7 @@ gcclResult_t gcclIbGetMr(struct gcclIbVerbs* verbs, void* data, int size,
   return gcclSuccess;
 }
 
-gcclResult_t gcclIbIsend(void* sendComm, void* data, int size, int type,
+gcclResult_t gcclIbIsend(void* sendComm, void* data, size_t size, int type,
                          void** request) {
   struct gcclIbSendComm* comm = (struct gcclIbSendComm*)sendComm;
   GCCLCHECK(gcclSendCheck(comm));
@@ -755,6 +756,7 @@ gcclResult_t gcclIbIsend(void* sendComm, void* data, int size, int type,
   GCCLCHECK(gcclIbGetRequest(comm->reqs, &req));
   req->type = type;
   req->verbs = &comm->verbs;
+  assert(size <= INT32_MAX);
   req->size = size;
 
   struct ibv_send_wr wr;
@@ -812,7 +814,7 @@ gcclResult_t gcclIbIsend(void* sendComm, void* data, int size, int type,
 }
 
 gcclResult_t gcclIbPostFifo(struct gcclIbRecvComm* comm, uint32_t rkey,
-                            uint64_t addr, int size) {
+                            uint64_t addr, size_t size) {
   struct ibv_send_wr wr;
   memset(&wr, 0, sizeof(wr));
   struct gcclIbRequest* req;
@@ -826,6 +828,7 @@ gcclResult_t gcclIbPostFifo(struct gcclIbRecvComm* comm, uint32_t rkey,
   localElem->addr = addr;
   localElem->rkey = rkey;
   localElem->ready = 1;
+  assert(size <= INT32_MAX);  // Sanity/Debugging
   localElem->size = size;               // Sanity/Debugging
   localElem->seq = comm->remFifo.tail;  // Sanity/Debugging
   wr.wr.rdma.remote_addr =
@@ -845,7 +848,7 @@ gcclResult_t gcclIbPostFifo(struct gcclIbRecvComm* comm, uint32_t rkey,
   return gcclSuccess;
 }
 
-gcclResult_t gcclIbIrecv(void* recvComm, void* data, int size, int type,
+gcclResult_t gcclIbIrecv(void* recvComm, void* data, size_t size, int type,
                          void** request) {
   struct gcclIbRecvComm* comm = (struct gcclIbRecvComm*)recvComm;
   GCCLCHECK(gcclRecvCheck(comm));
@@ -868,6 +871,7 @@ gcclResult_t gcclIbIrecv(void* recvComm, void* data, int size, int type,
   } else {
     GCCLCHECK(gcclIbGetMr(&comm->verbs, data, size, &req->ibMr));
     sge.addr = (uintptr_t)data;
+    assert(size <= INT32_MAX);
     sge.length = (unsigned int)size;
     sge.lkey = req->ibMr->mr->lkey;
     wr.sg_list = &sge;
@@ -883,7 +887,7 @@ gcclResult_t gcclIbIrecv(void* recvComm, void* data, int size, int type,
   return gcclSuccess;
 }
 
-gcclResult_t gcclIbFlush(void* recvComm, void* data, int size) {
+gcclResult_t gcclIbFlush(void* recvComm, void* data, size_t size) {
   struct gcclIbRecvComm* comm = (struct gcclIbRecvComm*)recvComm;
   if (comm->gpuFlush.enabled == 0 || size == 0) return gcclSuccess;
 
@@ -914,7 +918,7 @@ gcclResult_t gcclIbFlush(void* recvComm, void* data, int size) {
   return gcclSuccess;
 }
 
-gcclResult_t gcclIbTest(void* request, int* done, int* size) {
+gcclResult_t gcclIbTest(void* request, int* done, size_t* size) {
   struct gcclIbRequest* r = (struct gcclIbRequest*)request;
   *done = 0;
 

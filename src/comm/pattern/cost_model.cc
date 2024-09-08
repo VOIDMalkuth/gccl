@@ -55,6 +55,7 @@ Cost CostModel::GetEdgeCost(int stage, const Node& u, const Node& v) const {
     int id = e.id;
     int n = 0;
     if (edge_cost_[stage].count(id) > 0) {
+      // ! fixme: this n is a double
       n = edge_cost_[stage].at(id);
     }
     double prev_cost = curr_cost_[stage];

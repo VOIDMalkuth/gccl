@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <chrono>
+#include <iostream>
 
 #include "glog/logging.h"
 #include "nlohmann/json.hpp"
@@ -383,17 +384,20 @@ CommInfo *CommScheduler::ScatterCommInfo(Coordinator *coordinator,
   return myinfo;
 }
 
-void CommScheduler::DispatchData(Coordinator *coor, char *data, int feat_size,
-                                 int data_size, int local_n_nodes,
+void CommScheduler::DispatchData(Coordinator *coor, char *data, size_t feat_size,
+                                 size_t data_size, int local_n_nodes,
                                  char *local_data, int no_remote) {
   std::vector<std::vector<char>> vecs;
-  int record_size = feat_size * data_size;  // in bytes
+  size_t record_size = feat_size * data_size;  // in bytes
+  std::cout << "record_size:" << record_size << std::endl;
   if (coor->IsRoot()) {
     for (int i = 0; i < local_mappings_.size(); ++i) {
       const auto &mp = local_mappings_[i];
       int sub_local_n_nodes = all_local_graph_infos_[i].n_local_nodes;
 
       int sub_n_nodes = mp.size();
+      std::cout << "memcpy:" << sub_n_nodes << "x" << record_size << std::endl;
+      
       std::vector<char> char_data(sub_n_nodes * record_size, 0);
       for (const auto &pair : mp) {
         // u -> v
@@ -407,9 +411,13 @@ void CommScheduler::DispatchData(Coordinator *coor, char *data, int feat_size,
       vecs.emplace_back(std::move(char_data));
     }
   }
+  std::cout << "scattering" << std::endl;
+
   auto my_data = coor->Scatter(vecs);
   CHECK_EQ(my_data.size(), local_n_nodes * record_size);
   memcpy(local_data, my_data.data(), local_n_nodes * record_size);
+
+  std::cout << "dispatch finished" << std::endl;
 }
 
 void CommScheduler::ScatterLocalGraphInfos(Coordinator *coor) {

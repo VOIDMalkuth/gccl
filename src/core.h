@@ -53,9 +53,9 @@ size_t GetDataTypeSize(gcclDataType_t type);
 struct CollectiveArgs {
   CommInfo* info;
   void* input;
-  int ele_size;
-  int feat_size;
-  int buffer_size;
+  size_t ele_size;
+  size_t feat_size;
+  size_t buffer_size;
   int rank;
   int threads_per_conn;
 };

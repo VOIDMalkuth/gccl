@@ -8,18 +8,19 @@ namespace gccl {
 
 BinStream &AllToAllCommPatternInfo::serialize(BinStream &stream) const {
   stream << n_peers << rank << buffer_size << max_comm_size << threads_per_conn;
-  int send_size = send_off[n_peers];
-  int recv_size = recv_off[n_peers];
-  stream << std::vector<int>(send_ids, send_ids + send_size);
-  stream << std::vector<int>(send_off, send_off + n_peers + 1);
-  stream << std::vector<int>(recv_ids, recv_ids + recv_size);
-  stream << std::vector<int>(recv_off, recv_off + n_peers + 1);
+  size_t send_size = send_off[n_peers];
+  size_t recv_size = recv_off[n_peers];
+  stream << std::vector<long long>(send_ids, send_ids + send_size);
+  stream << std::vector<size_t>(send_off, send_off + n_peers + 1);
+  stream << std::vector<long long>(recv_ids, recv_ids + recv_size);
+  stream << std::vector<size_t>(recv_off, recv_off + n_peers + 1);
   return stream;
 }
 
 BinStream &AllToAllCommPatternInfo::deserialize(BinStream &stream) {
   stream >> n_peers >> rank >> buffer_size >> max_comm_size >> threads_per_conn;
-  std::vector<int> vsend_ids, vsend_off, vrecv_ids, vrecv_off;
+  std::vector<long long> vsend_ids, vrecv_ids;
+  std::vector<size_t> vsend_off, vrecv_off;
   stream >> vsend_ids >> vsend_off >> vrecv_ids >> vrecv_off;
   CopyVectorToRawPtr(&send_ids, vsend_ids);
   CopyVectorToRawPtr(&send_off, vsend_off);
@@ -29,12 +30,12 @@ BinStream &AllToAllCommPatternInfo::deserialize(BinStream &stream) {
 }
 
 void AllToAllCommPatternInfo::CopyGraphInfoToDev() {
-  int send_size = send_off[n_peers];
-  int recv_size = recv_off[n_peers];
+  size_t send_size = send_off[n_peers];
+  size_t recv_size = recv_off[n_peers];
   GCCLCallocAndCopy(&cpu_send_off,
-                    std::vector<int>(send_off, send_off + n_peers + 1));
+                    std::vector<size_t>(send_off, send_off + n_peers + 1));
   GCCLCallocAndCopy(&cpu_recv_off,
-                    std::vector<int>(recv_off, recv_off + n_peers + 1));
+                    std::vector<size_t>(recv_off, recv_off + n_peers + 1));
   GCCLMallocAndCopy(&send_off, send_off, n_peers + 1);
   GCCLMallocAndCopy(&recv_off, recv_off, n_peers + 1);
   GCCLMallocAndCopy(&send_ids, send_ids, send_size);
@@ -56,9 +57,9 @@ std::vector<CommPatternInfo> AllToAllCommPattern::BuildCommPatternInfos(
     aa_infos[i]->threads_per_conn = config->threads_per_conn;
   }
 
-  std::vector<std::vector<int>> send_off(n_parts), recv_off(n_parts),
-      send_ids(n_parts), recv_ids(n_parts);
-  int max_comm_size = 0;
+  std::vector<std::vector<size_t>> send_off(n_parts), recv_off(n_parts);
+  std::vector<std::vector<long long>> send_ids(n_parts), recv_ids(n_parts);
+  size_t max_comm_size = 0;
   for (int i = 0; i < n_parts; ++i) {
     send_off[i].push_back(0);
     recv_off[i].push_back(0);
@@ -70,9 +71,9 @@ std::vector<CommPatternInfo> AllToAllCommPattern::BuildCommPatternInfos(
         int v = local_mappings[i].at(id);
         send_ids[i].push_back(v);
       }
-      int prev = send_off[i].back();
+      size_t prev = send_off[i].back();
       send_off[i].push_back(send_ids[i].size());
-      int size = send_ids[i].size() - prev;
+      size_t size = send_ids[i].size() - prev;
       max_comm_size = std::max(max_comm_size, size);
     }
   }
@@ -83,9 +84,9 @@ std::vector<CommPatternInfo> AllToAllCommPattern::BuildCommPatternInfos(
         int v = local_mappings[j].at(id);
         recv_ids[j].push_back(v);
       }
-      int prev = recv_off[j].back();
+      size_t prev = recv_off[j].back();
       recv_off[j].push_back(recv_ids[j].size());
-      int size = recv_ids[j].size() - prev;
+      size_t size = recv_ids[j].size() - prev;
       max_comm_size = std::max(max_comm_size, size);
     }
   }

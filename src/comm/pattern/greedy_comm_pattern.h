@@ -16,23 +16,23 @@ struct GreedyCommPatternInfo {
   int n_peers;
   int rank;
   int n_stages;
-  int extra_buffer_size;
-  int max_feat_size;
-  int *max_comm_size,
+  size_t extra_buffer_size;
+  size_t max_feat_size;
+  size_t *max_comm_size,
       *cpu_max_comm_size;  // max communication size for each stage
-  int *send_ids;           // flatten 3D array, (stage, peer_id, send_id)
-  int *send_off;  // flatten 2D array, (stage_off, peer_id), size is n_stages *
+  long long *send_ids;           // flatten 3D array, (stage, peer_id, send_id)
+  size_t *send_off;  // flatten 2D array, (stage_off, peer_id), size is n_stages *
                   // n_peers + 1
-  int *recv_ids;
-  int *recv_off;
-  int *cpu_send_off, *cpu_recv_off;
+  long long *recv_ids;
+  size_t *recv_off;
+  size_t *cpu_send_off, *cpu_recv_off;
   int threads_per_conn;
 
   int n_conn;
   int *conn_peers;
   void *dev_extra_mem;
 
-  int buffer_size;
+  size_t buffer_size;
 
   SendDevMem **send_dev_mem;  // 1D, peer_id
   RecvDevMem **recv_dev_mem;
@@ -51,7 +51,7 @@ struct GreedyCommPatternInfo {
   BinStream &deserialize(BinStream &stream);
   void CopyGraphInfoToDev();
   void Print() const;
-  int GetMemBytes() const;
+  size_t GetMemBytes() const;
 };
 
 class GreedyCommPattern : public CommPattern {

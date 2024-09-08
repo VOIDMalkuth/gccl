@@ -8,7 +8,7 @@
 namespace gccl {
 
 __device__ bool HasSendOrRecv(int peer_id, int n_stages, int n_peers,
-                              int *send_off, int *recv_off) {
+                              size_t *send_off, size_t *recv_off) {
   bool ret = false;
   for (int i = 0; i < n_stages; ++i) {
     int pos = i * n_peers + peer_id;
@@ -42,9 +42,9 @@ __global__ void GraphGreedyAllgatherKernel(CollectiveArgs args) {
   //                   info->recv_off)) {
   //  return;
   //}
-  int ele_size = args.ele_size;
-  int feat_size = args.feat_size;
-  int record_size = ele_size * feat_size;
+  size_t ele_size = args.ele_size;
+  size_t feat_size = args.feat_size;
+  size_t record_size = ele_size * feat_size;
   int threads_per_conn = args.threads_per_conn;
   // here assume record_size is a multiple of 128bits
   CopyArgs copy_args(tid % threads_per_conn, threads_per_conn,
@@ -69,8 +69,8 @@ __global__ void GraphGreedyAllgatherKernel(CollectiveArgs args) {
     }
 #endif
     int pos = i * info->n_peers + peer_id;
-    int send_pos = info->send_off[pos];
-    int recv_pos = info->recv_off[pos];
+    size_t send_pos = info->send_off[pos];
+    size_t recv_pos = info->recv_off[pos];
     copy_args.send_ids = info->send_ids + send_pos;
     copy_args.recv_ids = info->recv_ids + recv_pos;
     copy_args.send_size = info->send_off[pos + 1] - info->send_off[pos];
@@ -105,9 +105,9 @@ __global__ void GraphGreedyAllgatherBackwardKernel(CollectiveArgs args) {
   //                   info->recv_off)) {
   //  return;
   //}
-  int ele_size = args.ele_size;
-  int feat_size = args.feat_size;
-  int record_size = ele_size * feat_size;
+  size_t ele_size = args.ele_size;
+  size_t feat_size = args.feat_size;
+  size_t record_size = ele_size * feat_size;
   int threads_per_conn = args.threads_per_conn;
   // here assume record_size is a multiple of 128bits
   CopyArgs copy_args(tid % threads_per_conn, threads_per_conn,
@@ -134,8 +134,8 @@ __global__ void GraphGreedyAllgatherBackwardKernel(CollectiveArgs args) {
     }
 #endif
     int pos = i * info->n_peers + peer_id;
-    int send_pos = info->send_off[pos];
-    int recv_pos = info->recv_off[pos];
+    size_t send_pos = info->send_off[pos];
+    size_t recv_pos = info->recv_off[pos];
     copy_args.recv_ids = info->send_ids + send_pos;
     copy_args.send_ids = info->recv_ids + recv_pos;
     copy_args.recv_size = info->send_off[pos + 1] - info->send_off[pos];

@@ -34,9 +34,9 @@ TransportLevel StringToTransportLevel(const std::string& type) {
 
 
 void DevGraph::InitializeEdges(std::vector<Edge>& edges, const std::vector<std::pair<int, int>>& unconn_edges) {
-  int org_edges_size = edges.size();
+  size_t org_edges_size = edges.size();
   edges.resize(org_edges_size * 2);
-  for (int i = 0; i < org_edges_size; ++i) {
+  for (size_t i = 0; i < org_edges_size; ++i) {
     edges[i].id = i;
     edges[i + org_edges_size] = edges[i];
     std::swap(edges[i + org_edges_size].u, edges[i + org_edges_size].v);

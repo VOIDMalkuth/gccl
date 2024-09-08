@@ -59,13 +59,13 @@ class Connection {
 
   // FIXME: We may not initialize send_dev_mem and recv_dev_mem here
   virtual void SendSetup(SendDevMem** send_dev_mem, void** send_resources,
-                         int buffer_size, ConnInfo* conn_info,
+                         size_t buffer_size, ConnInfo* conn_info,
                          ExchangeConnInfo* ex_info) = 0;
   virtual void RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
-                         int buffer_size, ConnInfo* conn_info,
+                         size_t buffer_size, ConnInfo* conn_info,
                          ExchangeConnInfo* ex_info) = 0;
   virtual void SendConn(ConnInfo* conn_info, void* send_resources,
-                        int buffer_size, ExchangeConnInfo* peer_ex_info) = 0;
+                        size_t buffer_size, ExchangeConnInfo* peer_ex_info) = 0;
 
   virtual void RecvConn(ConnInfo* conn_info, void* recv_resources,
                         ExchangeConnInfo* peer_ex_info) = 0;

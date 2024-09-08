@@ -25,9 +25,9 @@ __global__ void GraphRingAllgatherKernel(CollectiveArgs args) {
       (RingCommPatternInfo *)args.info->allgather_scheme.comm_pattern_infos[bid]
           .data;
   int n_stages = info->n_stages;
-  int ele_size = args.ele_size;
-  int feat_size = args.feat_size;
-  int record_size = ele_size * feat_size;
+  size_t ele_size = args.ele_size;
+  size_t feat_size = args.feat_size;
+  size_t record_size = ele_size * feat_size;
   // here assume record_size is a multiple of 128bits
   WaitFlag this_ready(info->forward_conn.conn_info.my_stage_ready);
   WaitFlag next_ready(info->forward_conn.conn_info.next_stage_ready);
@@ -50,8 +50,8 @@ __global__ void GraphRingAllgatherKernel(CollectiveArgs args) {
   copy_args.recv_ids = info->recv_ids;
   copy_args.send_ids = info->send_ids;
 
-  int *recv_off = info->recv_off;
-  int *send_off = info->send_off;
+  size_t *recv_off = info->recv_off;
+  size_t *send_off = info->send_off;
 
   for (int stage = 0; stage < n_stages; ++stage) {
 #ifdef GCCL_DEBUG
@@ -78,9 +78,9 @@ __global__ void GraphRingAllgatherBackwardKernel(CollectiveArgs args) {
       (RingCommPatternInfo *)args.info->allgather_scheme.comm_pattern_infos[bid]
           .data;
   int n_stages = info->n_stages;
-  int ele_size = args.ele_size;
-  int feat_size = args.feat_size;
-  int record_size = ele_size * feat_size;
+  size_t ele_size = args.ele_size;
+  size_t feat_size = args.feat_size;
+  size_t record_size = ele_size * feat_size;
   // here assume record_size is a multiple of 128bits
   WaitFlag this_ready(info->backward_conn.conn_info.my_stage_ready);
   WaitFlag next_ready(info->backward_conn.conn_info.next_stage_ready);
@@ -103,8 +103,8 @@ __global__ void GraphRingAllgatherBackwardKernel(CollectiveArgs args) {
   copy_args.recv_ids = info->recv_ids;
   copy_args.send_ids = info->send_ids;
 
-  int *recv_off = info->recv_off;
-  int *send_off = info->send_off;
+  size_t *recv_off = info->recv_off;
+  size_t *send_off = info->send_off;
 
   for (int stage = n_stages - 1; stage >= 0; --stage) {
 #ifdef GCCL_DEBUG
@@ -137,9 +137,9 @@ __global__ void GraphAllToAllAllgatherKernel(CollectiveArgs args) {
   if (peer_id >= args.rank) {
     peer_id++;
   }
-  int ele_size = args.ele_size;
-  int feat_size = args.feat_size;
-  int record_size = ele_size * feat_size;
+  size_t ele_size = args.ele_size;
+  size_t feat_size = args.feat_size;
+  size_t record_size = ele_size * feat_size;
   // here assume record_size is a multiple of 128bits
   CopyArgs copy_args(tid % threads_per_conn, threads_per_conn,
                      info->conn_info[peer_id].my_substage_ready,
@@ -153,8 +153,8 @@ __global__ void GraphAllToAllAllgatherKernel(CollectiveArgs args) {
   copy_args.n_128b = record_size / PACK_SIZE;
   copy_args.buff_n_128b = args.buffer_size / PACK_SIZE;
 
-  int recv_off = info->recv_off[peer_id];
-  int send_off = info->send_off[peer_id];
+  size_t recv_off = info->recv_off[peer_id];
+  size_t send_off = info->send_off[peer_id];
 
   copy_args.recv_ids = info->recv_ids + recv_off;
   copy_args.send_ids = info->send_ids + send_off;
@@ -179,9 +179,9 @@ __global__ void GraphAllToAllAllgatherBackwardKernel(CollectiveArgs args) {
   if (peer_id >= args.rank) {
     peer_id++;
   }
-  int ele_size = args.ele_size;
-  int feat_size = args.feat_size;
-  int record_size = ele_size * feat_size;
+  size_t ele_size = args.ele_size;
+  size_t feat_size = args.feat_size;
+  size_t record_size = ele_size * feat_size;
   // here assume record_size is a multiple of 128bits
   CopyArgs copy_args(tid % threads_per_conn, threads_per_conn,
                      info->conn_info[peer_id].my_substage_ready,
@@ -196,8 +196,8 @@ __global__ void GraphAllToAllAllgatherBackwardKernel(CollectiveArgs args) {
   copy_args.n_128b = record_size / PACK_SIZE;
   copy_args.buff_n_128b = args.buffer_size / PACK_SIZE;
 
-  int recv_off = info->recv_off[peer_id];
-  int send_off = info->send_off[peer_id];
+  size_t recv_off = info->recv_off[peer_id];
+  size_t send_off = info->send_off[peer_id];
 
   copy_args.recv_ids = info->send_ids + send_off;
   copy_args.send_ids = info->recv_ids + recv_off;
@@ -213,13 +213,13 @@ void StartProxy(gcclComm_t comm, gcclCommInfo_t info) {
   auto &scheme = info->allgather_scheme;
   const auto &patterns = comm->GetCommScheduler()->GetCommPatterns();
   int n_blocks = scheme.n_blocks;
-  for (int i = 0; i < n_blocks; ++i) {
+  for (size_t i = 0; i < n_blocks; ++i) {
     patterns[i]->StartProxy(comm->GetCoordinator(),
                             &scheme.comm_pattern_infos[i]);
   }
 }
 
-void SaveProxy(gcclComm_t comm, gcclCommInfo_t info, int feat_size,
+void SaveProxy(gcclComm_t comm, gcclCommInfo_t info, size_t feat_size,
                int n_threads, bool forward) {
   Config *config = comm->GetConfig();
   auto &scheme = info->allgather_scheme;

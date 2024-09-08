@@ -23,15 +23,15 @@ struct RingConn {
 };
 struct RingCommPatternInfo {
   int n_stages;
-  int extra_buff_size;
-  int *max_comm_size;  // max communication size for each stage
-  int *send_ids;
-  int *send_off;
-  int *recv_ids;
-  int *recv_off;
-  int *cpu_send_off, *cpu_recv_off, *cpu_max_comm_size;
+  size_t extra_buff_size;
+  size_t *max_comm_size;  // max communication size for each stage
+  long long *send_ids;
+  size_t *send_off;
+  long long *recv_ids;
+  size_t *recv_off;
+  size_t *cpu_send_off, *cpu_recv_off, *cpu_max_comm_size;
 
-  int buffer_size, max_feat_size;
+  size_t buffer_size, max_feat_size;
   RingConn forward_conn, backward_conn;
   void *dev_extra_mem;
 

@@ -15,7 +15,7 @@ typedef ulong2 Pack128;
 typedef uint64_t PackType;
 
 struct Iterator2d {
-  int p, v;
+  long long p, v;
 };
 
 #define SetIter(iter, x, y) \
@@ -134,12 +134,12 @@ struct CopyArgs {
   int tid, n_threads;
   Pack128 *input, *extra_buff;
   Pack128 *recv_buff, *next_recv_buff;
-  const int *send_ids, *recv_ids;
-  int send_size, recv_size;
+  const long long *send_ids, *recv_ids;
+  size_t send_size, recv_size;
   int n_128b,
       buff_n_128b;  // Per element number of 128b and buffer number of 128b
-  int extra_buff_size;
-  int max_comm_size;
+  size_t extra_buff_size;
+  size_t max_comm_size;
   int atomic_reduce;
   int sync_warp;
   WaitFlag ready, done, next_ready, prev_done;

@@ -8,14 +8,14 @@ namespace gccl {
 struct AllToAllCommPatternInfo {
   int n_peers;
   int rank;
-  int max_comm_size;  // max communication size for each stage
-  int *send_ids;
-  int *send_off;
-  int *recv_ids;
-  int *recv_off;
-  int *cpu_send_off, *cpu_recv_off;  // for proxy
+  size_t max_comm_size;  // max communication size for each stage
+  long long *send_ids;
+  size_t *send_off;
+  long long *recv_ids;
+  size_t *recv_off;
+  size_t *cpu_send_off, *cpu_recv_off;  // for proxy
 
-  int buffer_size;
+  size_t buffer_size;
   int threads_per_conn, pad;
 
   SendDevMem **send_dev_mem;

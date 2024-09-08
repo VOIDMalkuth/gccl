@@ -417,11 +417,11 @@ static gcclResult_t connectAddress(int* fd, union socketAddress* remoteAddr) {
   return gcclSuccess;
 }
 
-static gcclResult_t socketReceive(int fd, void* ptr, int size) {
+static gcclResult_t socketReceive(int fd, void* ptr, size_t size) {
   char* data = (char*)ptr;
-  int offset = 0;
+  size_t offset = 0;
   while (offset < size) {
-    int recvsize;
+    long long recvsize;
     SYSCHECKVAL(recv(fd, data, size - offset, 0), "recv", recvsize);
     if (recvsize == 0) {
       LOG(ERROR) << "Net : Connection closed by remote peer";
@@ -437,11 +437,11 @@ static gcclResult_t socketReceive(int fd, void* ptr, int size) {
   return gcclSuccess;
 }
 
-static gcclResult_t socketSend(int fd, void* ptr, int size) {
+static gcclResult_t socketSend(int fd, void* ptr, size_t size) {
   char* data = (char*)ptr;
-  int offset = 0;
+  size_t offset = 0;
   while (offset < size) {
-    int sendsize;
+    long long sendsize;
     SYSCHECKVAL(write(fd, data, size - offset), "write", sendsize);
     if (sendsize == -1) {
       LOG(ERROR) << "Send : got retcode " << errno << ", retrying";

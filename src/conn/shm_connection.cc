@@ -10,7 +10,7 @@ namespace gccl {
 #define MAX_SHM_NAME_LEN 1024
 
 void ShmConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
-                              int buffer_size, ConnInfo* conn_info,
+                              size_t buffer_size, ConnInfo* conn_info,
                               ExchangeConnInfo* ex_info) {
   char shm_name[MAX_SHM_NAME_LEN];
   ShmExchangeConnInfo shm_conn_info;
@@ -18,7 +18,7 @@ void ShmConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
   *send_resources = res;
   sprintf(shm_name, "gccl-shm-send-%d-%d-%d", my_info_.rank, peer_info_.rank,
           bid_);
-  int shm_size = sizeof(SendDevMem);
+  size_t shm_size = sizeof(SendDevMem);
   gccl_shm_open(shm_name, shm_size, (void**)&res->host_mem,
                 (void**)&res->send_dev_mem, 1);
 
@@ -36,7 +36,7 @@ void ShmConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
 }
 
 void ShmConnection::RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
-                              int buffer_size, ConnInfo* conn_info,
+                              size_t buffer_size, ConnInfo* conn_info,
                               ExchangeConnInfo* ex_info) {
   ShmExchangeConnInfo shm_conn_info;
   ShmRecvResources* res = new ShmRecvResources;
@@ -45,7 +45,7 @@ void ShmConnection::RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
   char shm_name[MAX_SHM_NAME_LEN];
   sprintf(shm_name, "gccl-shm-recv-%d-%d-%d", my_info_.rank, peer_info_.rank,
           bid_);
-  int shm_size = sizeof(RecvDevMem) + buffer_size;
+  size_t shm_size = sizeof(RecvDevMem) + buffer_size;
 
   gccl_shm_open(shm_name, shm_size, (void**)&res->host_mem,
                 (void**)&res->recv_dev_mem, 1);
@@ -102,13 +102,13 @@ void ShmConnection::RecvSetup(CommPatternInfo* info,
 */
 
 void ShmConnection::SendConn(ConnInfo* conn_info, void* send_resources,
-                             int buffer_size, ExchangeConnInfo* peer_ex_info) {
+                             size_t buffer_size, ExchangeConnInfo* peer_ex_info) {
   ShmExchangeConnInfo* peer_info = (ShmExchangeConnInfo*)peer_ex_info;
   char shm_name[MAX_SHM_NAME_LEN];
   sprintf(shm_name, "gccl-shm-recv-%d-%d-%d", peer_info->rank,
           peer_info->peer_rank, peer_info->bid);
   auto* res = (ShmSendResources*)send_resources;
-  int shm_size = sizeof(RecvDevMem) + buffer_size;
+  size_t shm_size = sizeof(RecvDevMem) + buffer_size;
 
   gccl_shm_open(shm_name, shm_size, (void**)&res->rem_host_mem,
                 (void**)&res->rem_recv_dev_mem, 0);
@@ -128,7 +128,7 @@ void ShmConnection::RecvConn(ConnInfo* conn_info, void* recv_resources,
   sprintf(shm_name, "gccl-shm-send-%d-%d-%d", peer_info->rank,
           peer_info->peer_rank, peer_info->bid);
   auto* res = (ShmRecvResources*)recv_resources;
-  int shm_size = sizeof(SendDevMem);
+  size_t shm_size = sizeof(SendDevMem);
   gccl_shm_open(shm_name, shm_size, (void**)&res->rem_host_mem,
                 (void**)&res->rem_send_dev_mem, 0);
   gccl_shm_unlink(shm_name);

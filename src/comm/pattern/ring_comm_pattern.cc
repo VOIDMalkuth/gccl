@@ -10,20 +10,21 @@ namespace gccl {
 
 BinStream &RingCommPatternInfo::serialize(BinStream &stream) const {
   stream << n_stages << extra_buff_size;
-  int send_size = send_off[n_stages];
-  int recv_size = recv_off[n_stages];
-  stream << std::vector<int>(send_ids, send_ids + send_size);
-  stream << std::vector<int>(send_off, send_off + n_stages + 1);
-  stream << std::vector<int>(recv_ids, recv_ids + recv_size);
-  stream << std::vector<int>(recv_off, recv_off + n_stages + 1);
-  stream << std::vector<int>(max_comm_size, max_comm_size + n_stages);
+  size_t send_size = send_off[n_stages];
+  size_t recv_size = recv_off[n_stages];
+  stream << std::vector<long long>(send_ids, send_ids + send_size);
+  stream << std::vector<size_t>(send_off, send_off + n_stages + 1);
+  stream << std::vector<long long>(recv_ids, recv_ids + recv_size);
+  stream << std::vector<size_t>(recv_off, recv_off + n_stages + 1);
+  stream << std::vector<size_t>(max_comm_size, max_comm_size + n_stages);
   stream << buffer_size << max_feat_size;
   return stream;
 }
 
 BinStream &RingCommPatternInfo::deserialize(BinStream &stream) {
   stream >> n_stages >> extra_buff_size;
-  std::vector<int> vsend_ids, vsend_off, vrecv_ids, vrecv_off, vmax_comm_size;
+  std::vector<long long> vsend_ids, vrecv_ids;
+  std::vector<size_t> vsend_off, vrecv_off, vmax_comm_size;
   stream >> vsend_ids >> vsend_off >> vrecv_ids >> vrecv_off >> vmax_comm_size;
   stream >> buffer_size >> max_feat_size;
 
@@ -36,14 +37,14 @@ BinStream &RingCommPatternInfo::deserialize(BinStream &stream) {
 }
 
 void RingCommPatternInfo::CopyGraphInfoToDev() {
-  int send_size = send_off[n_stages];
-  int recv_size = recv_off[n_stages];
+  size_t send_size = send_off[n_stages];
+  size_t recv_size = recv_off[n_stages];
   GCCLCallocAndCopy(&cpu_max_comm_size,
-                    std::vector<int>(max_comm_size, max_comm_size + n_stages));
+                    std::vector<size_t>(max_comm_size, max_comm_size + n_stages));
   GCCLCallocAndCopy(&cpu_send_off,
-                    std::vector<int>(send_off, send_off + n_stages + 1));
+                    std::vector<size_t>(send_off, send_off + n_stages + 1));
   GCCLCallocAndCopy(&cpu_recv_off,
-                    std::vector<int>(recv_off, recv_off + n_stages + 1));
+                    std::vector<size_t>(recv_off, recv_off + n_stages + 1));
   GCCLMallocAndCopy(&send_off, send_off, n_stages + 1);
   GCCLMallocAndCopy(&recv_off, recv_off, n_stages + 1);
   GCCLMallocAndCopy(&send_ids, send_ids, send_size);
@@ -54,7 +55,7 @@ void RingCommPatternInfo::CopyGraphInfoToDev() {
 void RingCommPatternInfo::Print() const {
   LOG(INFO) << "  Number of stages " << n_stages;
   LOG(INFO) << "  Extra buff size " << extra_buff_size;
-  LOG(INFO) << "  Max comm size " << VecToString(std::vector<int>(max_comm_size, max_comm_size + n_stages));
+  LOG(INFO) << "  Max comm size " << VecToString(std::vector<size_t>(max_comm_size, max_comm_size + n_stages));
   for (int j = 0; j < n_stages; ++j) {
     LOG(INFO) << "    Send size of " << j << " stage is "
               << send_off[j + 1] - send_off[j];
@@ -125,15 +126,15 @@ std::vector<CommPatternInfo> RingCommPattern::BuildCommPatternInfos(
       BuildRingTransferInfo(req, n_parts, dev_topo_, dev_topo_rmap_);
   SortTransferInfoByLocalId(transfer_infos, local_mappings, n_parts);
   // n_parts - 1 stages
-  std::vector<std::vector<int>> send_ids(n_parts), send_off(n_parts),
-      recv_ids(n_parts), recv_off(n_parts);
+  std::vector<std::vector<long long>> send_ids(n_parts), recv_ids(n_parts);
+  std::vector<std::vector<size_t>> send_off(n_parts), recv_off(n_parts);
   std::vector<std::map<int, int>> extra_node_to_buff_index(n_parts);
   for (int i = 0; i < n_parts; ++i) {
     ring_infos[i]->extra_buff_size = 1;
     ring_infos[i]->buffer_size = config->buffer_size;
     ring_infos[i]->max_feat_size = config->max_feat_size;
   }
-  std::vector<int> max_comm_size;
+  std::vector<size_t> max_comm_size;
 
   for (int i = 0; i < n_parts; ++i) {
     send_off[i].push_back(0);
@@ -141,7 +142,7 @@ std::vector<CommPatternInfo> RingCommPattern::BuildCommPatternInfos(
   }
   // Map global node id to local node id
   for (int stage = 0; stage < n_parts - 1; ++stage) {
-    int max_comm = 0;
+    size_t max_comm = 0;
     for (int i = 0; i < n_parts; ++i) {
       for (auto u : transfer_infos.tr_ids[i][stage]) {
         if (local_mappings[i].count(u) > 0) {
@@ -154,7 +155,7 @@ std::vector<CommPatternInfo> RingCommPattern::BuildCommPatternInfos(
         }
       }
       send_off[i].push_back(send_ids[i].size());
-      max_comm = std::max((int)(send_off[i][stage + 1] - send_off[i][stage]),
+      max_comm = std::max((send_off[i][stage + 1] - send_off[i][stage]),
                           max_comm);
 
       // Using different buffer for send and receive
@@ -167,19 +168,19 @@ std::vector<CommPatternInfo> RingCommPattern::BuildCommPatternInfos(
         if (local_mappings[i].count(u) > 0) {
           recv_ids[i].push_back(local_mappings[i].at(u));
         } else {
-          int sz = extra_node_to_buff_index[i].size();
+          long long sz = extra_node_to_buff_index[i].size();
           recv_ids[i].push_back(ENCODE(sz));
           extra_node_to_buff_index[i][u] = sz++;
         }
       }
       recv_off[i].push_back(recv_ids[i].size());
 
-      max_comm = std::max((int)(recv_off[i][stage + 1] - recv_off[i][stage]),
+      max_comm = std::max((recv_off[i][stage + 1] - recv_off[i][stage]),
                           max_comm);
 
       ring_infos[i]->extra_buff_size =
           std::max(ring_infos[i]->extra_buff_size,
-                   (int)extra_node_to_buff_index[i].size());
+                   extra_node_to_buff_index[i].size());
     }
     max_comm_size.push_back(max_comm);
   }
@@ -226,9 +227,9 @@ void RingCommPattern::SetupConnection(CommPatternInfo *info, Coordinator *coor,
   int n_peers = coor->GetNPeers();
 
   // setup extra buffer
-  int max_feat_size = ring_info->max_feat_size;
-  int extra_mem_size = ring_info->extra_buff_size * max_feat_size * 4;
-  extra_mem_size = std::max(extra_mem_size, 1);
+  size_t max_feat_size = ring_info->max_feat_size;
+  size_t extra_mem_size = ring_info->extra_buff_size * max_feat_size * 4;
+  extra_mem_size = std::max(extra_mem_size, 1ul);
   GCCLCudaMalloc((char **)&ring_info->dev_extra_mem, extra_mem_size);
 
   int prev = (dev_topo_rmap_[my_rank] + n_peers - 1) % n_peers;
@@ -282,8 +283,8 @@ void RingCommPattern::StartProxy(Coordinator *coor, CommPatternInfo *raw_info) {
 }
 void SaveProxyOnConn(transportProxyInfo *proxy, int n_stages, int buffer_size,
                      int feat_size, int n_threads, void *resources,
-                     const std::vector<int> &max_comm_size,
-                     const std::vector<int> &comm_off) {
+                     const std::vector<size_t> &max_comm_size,
+                     const std::vector<size_t> &comm_off) {
   gcclProxyArgs args;
   args.n_stages = n_stages;
   args.buffer_size = buffer_size;
@@ -300,9 +301,9 @@ void RingCommPattern::SaveProxy(Coordinator *coor, CommPatternInfo *raw_info,
   auto *info = raw_info->GetRingCommPatternInfo();
   int n_peers = coor->GetNPeers();
   int n_stages = info->n_stages;
-  auto max_comm_size = std::vector<int>(info->cpu_max_comm_size,
+  auto max_comm_size = std::vector<size_t>(info->cpu_max_comm_size,
                                         info->cpu_max_comm_size + n_stages);
-  std::vector<int> send_comm_off, recv_comm_off;
+  std::vector<size_t> send_comm_off, recv_comm_off;
   for (int i = 0; i < n_stages; ++i) {
     auto *send_ptr = info->cpu_send_off;
     auto *recv_ptr = info->cpu_recv_off;

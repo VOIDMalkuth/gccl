@@ -132,7 +132,7 @@ template <typename InputT>
 BinStream &operator<<(BinStream &stream, const std::vector<InputT> &v) {
   size_t len = v.size();
   stream << len;
-  for (int i = 0; i < v.size(); ++i) stream << v[i];
+  for (size_t i = 0; i < len; ++i) stream << v[i];
   return stream;
 }
 
@@ -142,7 +142,7 @@ BinStream &operator>>(BinStream &stream, std::vector<OutputT> &v) {
   stream >> len;
   v.clear();
   v.reserve(len);
-  for (int i = 0; i < len; ++i) {
+  for (size_t i = 0; i < len; ++i) {
     OutputT elem;
     stream >> elem;
     v.push_back(std::move(elem));
@@ -163,7 +163,7 @@ BinStream &operator>>(BinStream &stream, std::map<K, V> &map) {
   size_t len;
   stream >> len;
   map.clear();
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     std::pair<K, V> elem;
     stream >> elem;
     map.insert(std::move(elem));
@@ -184,7 +184,7 @@ BinStream &operator>>(BinStream &stream, std::set<K> &set) {
   size_t len;
   stream >> len;
   set.clear();
-  for (int i = 0; i < len; ++i) {
+  for (size_t i = 0; i < len; ++i) {
     K elem;
     stream >> elem;
     set.insert(std::move(elem));
@@ -207,7 +207,7 @@ BinStream &operator>>(BinStream &stream,
   size_t len;
   stream >> len;
   unordered_set.clear();
-  for (int i = 0; i < len; ++i) {
+  for (size_t i = 0; i < len; ++i) {
     K elem;
     stream >> elem;
     unordered_set.insert(std::move(elem));
@@ -230,7 +230,7 @@ BinStream &operator>>(BinStream &stream,
   size_t len;
   stream >> len;
   unordered_map.clear();
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     std::pair<K, V> elem;
     stream >> elem;
     unordered_map.insert(std::move(elem));

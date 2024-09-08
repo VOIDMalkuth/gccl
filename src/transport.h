@@ -11,10 +11,10 @@ namespace gccl {
 
 struct gcclProxyArgs {
   int n_stages;
-  std::vector<int> max_comm_size; // Per stage max comm size in all stages
-  std::vector<int> comm_off;       // Per stage send/recv offset
-  int buffer_size;
-  int feat_size;
+  std::vector<size_t> max_comm_size; // Per stage max comm size in all stages
+  std::vector<size_t> comm_off;       // Per stage send/recv offset
+  size_t buffer_size;
+  size_t feat_size;
   int n_threads;
   void* resources;
   int active;  // add component before this line -- it is left out during

@@ -1,5 +1,6 @@
 #include "base/bin_stream.h"
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -108,7 +109,7 @@ BinStream &operator>>(BinStream &stream, std::string &x) {
 BinStream &operator<<(BinStream &stream, const std::vector<bool> &v) {
   size_t len = v.size();
   stream << len;
-  for (int i = 0; i < v.size(); ++i) stream << static_cast<bool>(v[i]);
+  for (size_t i = 0; i < v.size(); ++i) stream << static_cast<bool>(v[i]);
   return stream;
 }
 
@@ -118,7 +119,7 @@ BinStream &operator>>(BinStream &stream, std::vector<bool> &v) {
   v.clear();
   v.resize(len);
   bool bool_tmp;
-  for (int i = 0; i < v.size(); ++i) {
+  for (size_t i = 0; i < v.size(); ++i) {
     stream >> bool_tmp;
     v[i] = bool_tmp;
   }

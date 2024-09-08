@@ -30,11 +30,11 @@ class TestCommInfo : public testing::Test {
 
  protected:
   CommPatternInfo pattern_info;
-  std::vector<int> send_off;
-  std::vector<int> send_ids;
-  std::vector<int> recv_off;
-  std::vector<int> recv_ids;
-  std::vector<int> max_comm_size;
+  std::vector<size_t> send_off;
+  std::vector<long long> send_ids;
+  std::vector<size_t> recv_off;
+  std::vector<long long> recv_ids;
+  std::vector<size_t> max_comm_size;
 };
 
 TEST_F(TestCommInfo, SerAndDeser) {

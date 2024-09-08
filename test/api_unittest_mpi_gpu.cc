@@ -189,10 +189,10 @@ TEST_F(TestAPI, GraphPartitionWorldSize3) {
   EXPECT_EQ(info->allgather_scheme.n_blocks, 1);
   struct ExpRes {
     int n_stages;
-    std::vector<int> send_ids;
-    std::vector<int> send_off;
-    std::vector<int> recv_ids;
-    std::vector<int> recv_off;
+    std::vector<long long> send_ids;
+    std::vector<size_t> send_off;
+    std::vector<long long> recv_ids;
+    std::vector<size_t> recv_off;
   } exp_res;
   if (rank == 0) {
     exp_res = {2, {0}, {0, 1, 1}, {4, 3}, {0, 1, 2}};

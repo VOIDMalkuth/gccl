@@ -12,7 +12,7 @@ namespace gccl {
 #define MAX_ID_SIZE_PER_SUBSTAGES 8192
 #define UNROLL 4
 
-__device__ void FetchIds(int *dst_ids, const int *src_ids, int size, int tid,
+__device__ void FetchIds(int *dst_ids, const int *src_ids, size_t size, size_t tid,
                          int n_threads, int sync_warp) {
   while (tid < size) {
     dst_ids[tid] = src_ids[tid];
@@ -28,12 +28,12 @@ __device__ void FetchIds(int *dst_ids, const int *src_ids, int size, int tid,
 
 __device__ void Copy128b(CopyArgs *args) {
   // Assume args->buff_n_128b >= args->n_128b * args->n_threads
-  int per_substage_n_ele =
+  size_t per_substage_n_ele =
       args->buff_n_128b / (args->n_128b * args->n_threads) * args->n_threads;
   // int recv_n_substages = DIVUP(args->recv_size, per_substage_n_ele);
   // int send_n_substages = DIVUP(args->send_size, per_substage_n_ele);
   int n_substages = DIVUP(args->max_comm_size, per_substage_n_ele);
-  int total_size_per_substage = per_substage_n_ele * args->n_128b;
+  size_t total_size_per_substage = per_substage_n_ele * args->n_128b;
   // int n_substages = MAX(recv_n_substages, send_n_substages);
   Iterator2d recv_iter, send_iter, recv_inc, send_inc;
   SetIter(recv_iter, args->tid / args->n_128b, args->tid % args->n_128b);
@@ -44,9 +44,9 @@ __device__ void Copy128b(CopyArgs *args) {
           args->n_threads % args->n_128b);
 
   CUDA_DEBUG(
-      printf("Send size %d, recv size %d\n", args->send_size, args->recv_size));
+      printf("Send size %llu, recv size %llu\n", args->send_size, args->recv_size));
   CUDA_DEBUG(printf("n_substages %d\n", n_substages));
-  CUDA_DEBUG(printf("extra_buff_size is %d\n", args->extra_buff_size));
+  CUDA_DEBUG(printf("extra_buff_size is %llu\n", args->extra_buff_size));
   // if (args->tid == 0) {
   //  args->ready.post(WaitFlag::FLAG_START);
   //  args->next_ready.wait(WaitFlag::FLAG_START);
@@ -85,15 +85,15 @@ __device__ void Copy128b(CopyArgs *args) {
     // FetchIds(shared_ids, args->send_ids + send_off, substage_send_size,
     //         args->tid, args->n_threads);
 
-    int buff_iter = args->tid;
-    int buff_inc = args->n_threads;
+    size_t buff_iter = args->tid;
+    size_t buff_inc = args->n_threads;
     // While loop for sending data
     while (buff_iter < total_size_per_substage &&
            send_iter.p < args->send_size) {
       Pack128 *send_ptr;
       Pack128 t0[UNROLL];
       int org_buff_iter = buff_iter;
-      int size = 0;
+      size_t size = 0;
       /*
       for(int i = 0; i < UNROLL; ++i) {
         if(buff_iter < total_size_per_substage && send_iter.p < args->send_size)
@@ -119,7 +119,7 @@ __device__ void Copy128b(CopyArgs *args) {
       }
       */
       // /*
-      int send_id = args->send_ids[send_iter.p];
+      long long send_id = args->send_ids[send_iter.p];
       // int send_id = shared_ids[send_iter.p - send_off];
       if (send_id < 0) {
         send_id = ENCODE(send_id);
@@ -163,7 +163,7 @@ __device__ void Copy128b(CopyArgs *args) {
     while (buff_iter < total_size_per_substage &&
            recv_iter.p < args->recv_size) {
       Pack128 t0[UNROLL];
-      int size = 0;
+      size_t size = 0;
       Iterator2d org_recv_iter = recv_iter;
       Pack128 *recv_ptr;
       /*
@@ -193,7 +193,7 @@ __device__ void Copy128b(CopyArgs *args) {
       Pack128 v;
       Pack128 *buff_ptr = args->recv_buff + buff_iter;
 
-      int recv_id = args->recv_ids[recv_iter.p];
+      long long recv_id = args->recv_ids[recv_iter.p];
       // int recv_id = shared_ids[recv_iter.p - recv_off];
 
       if (recv_id < 0) {
@@ -235,10 +235,10 @@ __device__ void Copy128b(CopyArgs *args) {
 
 __device__ void CopyAndReduce128b(CopyArgs *args) {
   // Assume args->buff_n_128b >= args->n_128b * args->n_threads
-  int per_substage_n_ele =
+  size_t per_substage_n_ele =
       args->buff_n_128b / (args->n_128b * args->n_threads) * args->n_threads;
   int n_substages = DIVUP(args->max_comm_size, per_substage_n_ele);
-  int total_size_per_substage = per_substage_n_ele * args->n_128b;
+  size_t total_size_per_substage = per_substage_n_ele * args->n_128b;
   Iterator2d recv_iter, send_iter, recv_inc, send_inc;
   SetIter(recv_iter, args->tid / args->n_128b, args->tid % args->n_128b);
   SetIter(send_iter, args->tid / args->n_128b, args->tid % args->n_128b);
@@ -275,16 +275,16 @@ __device__ void CopyAndReduce128b(CopyArgs *args) {
     // FetchIds(shared_ids, args->send_ids + send_off, substage_send_size,
     //         args->tid, args->n_threads);
 
-    int buff_iter = args->tid;
-    int buff_inc = args->n_threads;
+    size_t buff_iter = args->tid;
+    size_t buff_inc = args->n_threads;
     // While loop for sending data
     while (buff_iter < total_size_per_substage &&
            send_iter.p < args->send_size) {
       Pack128 *send_ptr;
       Pack128 t0[UNROLL];
       int org_buff_iter = buff_iter;
-      int size = 0;
-      int send_id = args->send_ids[send_iter.p];
+      size_t size = 0;
+      long long send_id = args->send_ids[send_iter.p];
       if (send_id < 0) {
         send_id = ENCODE(send_id);
         send_ptr = args->extra_buff + send_id * args->n_128b + send_iter.v;
@@ -317,13 +317,13 @@ __device__ void CopyAndReduce128b(CopyArgs *args) {
     while (buff_iter < total_size_per_substage &&
            recv_iter.p < args->recv_size) {
       Pack128 t0[UNROLL];
-      int size = 0;
+      size_t size = 0;
       Iterator2d org_recv_iter = recv_iter;
       Pack128 *recv_ptr;
       Pack128 v;
       Pack128 *buff_ptr = args->recv_buff + buff_iter;
 
-      int recv_id = args->recv_ids[recv_iter.p];
+      long long recv_id = args->recv_ids[recv_iter.p];
       // int recv_id = shared_ids[recv_iter.p - recv_off];
 
       bool reduce = false;

@@ -27,7 +27,7 @@ void PartitionGraphMetis(int n, int *xadj, int *adjncy, int nparts, int *objval,
   options[METIS_OPTION_NUMBERING] = 0;
   options[METIS_OPTION_SEED] = 1;
   options[METIS_OPTION_PTYPE] = METIS_PTYPE_RB;
-  options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO;
+  options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_TIME;
   long int nn = n;
   auto result =
       METIS_PartGraphRecursive(&n, &ncon, xadj, adjncy, NULL, NULL, NULL,

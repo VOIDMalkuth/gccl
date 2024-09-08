@@ -22,19 +22,20 @@ struct NodeReq {
 BinStream &GreedyCommPatternInfo::serialize(BinStream &stream) const {
   stream << n_peers << rank << n_stages << extra_buffer_size << buffer_size
          << max_feat_size << threads_per_conn;
-  int send_size = send_off[n_stages * n_peers];
-  int recv_size = recv_off[n_stages * n_peers];
-  stream << std::vector<int>(send_ids, send_ids + send_size);
-  stream << std::vector<int>(send_off, send_off + n_stages * n_peers + 1);
-  stream << std::vector<int>(recv_ids, recv_ids + recv_size);
-  stream << std::vector<int>(recv_off, recv_off + n_stages * n_peers + 1);
-  stream << std::vector<int>(max_comm_size, max_comm_size + n_stages);
+  size_t send_size = send_off[n_stages * n_peers];
+  size_t recv_size = recv_off[n_stages * n_peers];
+  stream << std::vector<long long>(send_ids, send_ids + send_size);
+  stream << std::vector<size_t>(send_off, send_off + n_stages * n_peers + 1);
+  stream << std::vector<long long>(recv_ids, recv_ids + recv_size);
+  stream << std::vector<size_t>(recv_off, recv_off + n_stages * n_peers + 1);
+  stream << std::vector<size_t>(max_comm_size, max_comm_size + n_stages);
   return stream;
 }
 BinStream &GreedyCommPatternInfo::deserialize(BinStream &stream) {
   stream >> n_peers >> rank >> n_stages >> extra_buffer_size >> buffer_size >>
       max_feat_size >> threads_per_conn;
-  std::vector<int> vsend_ids, vsend_off, vrecv_ids, vrecv_off, vmax_comm_size;
+  std::vector<long long> vsend_ids, vrecv_ids;
+  std::vector<size_t> vsend_off, vrecv_off, vmax_comm_size;
   stream >> vsend_ids >> vsend_off >> vrecv_ids >> vrecv_off >> vmax_comm_size;
   CopyVectorToRawPtr(&send_ids, vsend_ids);
   CopyVectorToRawPtr(&send_off, vsend_off);
@@ -45,16 +46,16 @@ BinStream &GreedyCommPatternInfo::deserialize(BinStream &stream) {
 }
 
 void GreedyCommPatternInfo::CopyGraphInfoToDev() {
-  int send_size = send_off[n_stages * n_peers];
-  int recv_size = recv_off[n_stages * n_peers];
+  size_t send_size = send_off[n_stages * n_peers];
+  size_t recv_size = recv_off[n_stages * n_peers];
   GCCLCallocAndCopy(&cpu_max_comm_size,
-                    std::vector<int>(max_comm_size, max_comm_size + n_stages));
+                    std::vector<size_t>(max_comm_size, max_comm_size + n_stages));
   GCCLCallocAndCopy(
       &cpu_send_off,
-      std::vector<int>(send_off, send_off + n_stages * n_peers + 1));
+      std::vector<size_t>(send_off, send_off + n_stages * n_peers + 1));
   GCCLCallocAndCopy(
       &cpu_recv_off,
-      std::vector<int>(recv_off, recv_off + n_stages * n_peers + 1));
+      std::vector<size_t>(recv_off, recv_off + n_stages * n_peers + 1));
   GCCLMallocAndCopy(&send_off, send_off, n_stages * n_peers + 1);
   GCCLMallocAndCopy(&recv_off, recv_off, n_stages * n_peers + 1);
   GCCLMallocAndCopy(&send_ids, send_ids, send_size);
@@ -64,11 +65,11 @@ void GreedyCommPatternInfo::CopyGraphInfoToDev() {
 void GreedyCommPatternInfo::Print() const {
   DLOG(INFO) << "  Number of stages " << n_stages;
   DLOG(INFO) << "  Extra buff size " << extra_buffer_size;
-  std::vector<std::vector<int>> send(n_stages, std::vector<int>(n_peers));
-  std::vector<std::vector<int>> recv(n_stages, std::vector<int>(n_peers));
+  std::vector<std::vector<size_t>> send(n_stages, std::vector<size_t>(n_peers));
+  std::vector<std::vector<size_t>> recv(n_stages, std::vector<size_t>(n_peers));
   for(int i = 0; i < n_stages; ++i) {
     for(int j = 0; j < n_peers; ++j) {
-      int pos = n_peers * i + j;
+      size_t pos = n_peers * i + j;
       send[i][j] = send_off[pos + 1] - send_off[pos];
       recv[i][j] = recv_off[pos + 1] - recv_off[pos];
     }
@@ -99,10 +100,10 @@ void GreedyCommPatternInfo::Print() const {
   }
 }
 
-int GreedyCommPatternInfo::GetMemBytes() const {
+size_t GreedyCommPatternInfo::GetMemBytes() const {
   int ret = 0;
-  int send_size = send_off[n_stages * n_peers];
-  int recv_size = recv_off[n_stages * n_peers];
+  size_t send_size = send_off[n_stages * n_peers];
+  size_t recv_size = recv_off[n_stages * n_peers];
   return (send_size + recv_size) * 4;
 }
 
@@ -206,16 +207,16 @@ std::vector<CommPatternInfo> GreedyCommPattern::BuildCommPatternInfos(
   auto tr_info = BuildGreedyTransferInfo(&cost_model, req, n_parts);
   int n_stages = GetMaxStage(tr_info, n_parts);
   // to local ids
-  std::vector<std::vector<int>> send_ids(n_parts), send_off(n_parts),
-      recv_ids(n_parts), recv_off(n_parts);
-  std::vector<int> max_comm_size;
+  std::vector<std::vector<long long>> send_ids(n_parts), recv_ids(n_parts);
+  std::vector<std::vector<size_t>> send_off(n_parts), recv_off(n_parts);
+  std::vector<size_t> max_comm_size;
   for (int i = 0; i < n_parts; ++i) {
     send_off[i].push_back(0);
     recv_off[i].push_back(0);
   }
   std::vector<std::map<int, int>> extra_node_to_buff_index(n_parts);
   for (int stage = 0; stage < n_stages; ++stage) {
-    int max_comm = 0;
+    size_t max_comm = 0;
     for (int i = 0; i < n_parts; ++i) {
       for (int j = 0; j < n_parts; ++j) {
         if (i == j) {
@@ -231,7 +232,7 @@ std::vector<CommPatternInfo> GreedyCommPattern::BuildCommPatternInfos(
           }
         }
         max_comm =
-            std::max(max_comm, (int)send_ids[i].size() - send_off[i].back());
+            std::max(max_comm, send_ids[i].size() - send_off[i].back());
         send_off[i].push_back(send_ids[i].size());
       }  // j for loop
       extra_node_to_buff_index[i].clear();
@@ -246,7 +247,7 @@ std::vector<CommPatternInfo> GreedyCommPattern::BuildCommPatternInfos(
             recv_ids[i].push_back(local_mappings[i].at(v));
           } else {
             CHECK(extra_node_to_buff_index[i].count(v) == 0);
-            int sz = extra_node_to_buff_index[i].size();
+            long long sz = extra_node_to_buff_index[i].size();
             recv_ids[i].push_back(ENCODE(sz));
             extra_node_to_buff_index[i][v] = sz++;
           }
@@ -256,7 +257,7 @@ std::vector<CommPatternInfo> GreedyCommPattern::BuildCommPatternInfos(
         recv_off[i].push_back(recv_ids[i].size());
       }  // j for loop
       infos[i]->extra_buffer_size = std::max(
-          infos[i]->extra_buffer_size, (int)extra_node_to_buff_index[i].size());
+          infos[i]->extra_buffer_size, extra_node_to_buff_index[i].size());
     }  // i for loop
     max_comm_size.push_back(max_comm);
   }  // stage for loop
@@ -280,10 +281,10 @@ std::vector<bool> GetConnMap(GreedyCommPatternInfo *info, int my_rank,
       int t = j;
       int pos = stage * n_peers + t;
       int send_ptr = info->send_off[pos];
-      int send_size = info->send_off[pos + 1] - send_ptr;
+      size_t send_size = info->send_off[pos + 1] - send_ptr;
       if (send_size > 0) ret[j] = true;
       int recv_ptr = info->recv_off[pos];
-      int recv_size = info->recv_off[pos + 1] - recv_ptr;
+      size_t recv_size = info->recv_off[pos + 1] - recv_ptr;
       if (recv_size > 0) ret[j] = true;
     }
   }
@@ -308,9 +309,9 @@ void GreedyCommPattern::SetupConnection(CommPatternInfo *raw_info,
   info->n_conn = conn_peers.size();
 
   // setup extra buffer
-  int max_feat_size = info->max_feat_size;
-  int extra_mem_size = info->extra_buffer_size * max_feat_size * 4;
-  extra_mem_size = std::max(extra_mem_size, 1);
+  size_t max_feat_size = info->max_feat_size;
+  size_t extra_mem_size = info->extra_buffer_size * max_feat_size * 4;
+  extra_mem_size = std::max(extra_mem_size, 1ul);
   GCCLCudaMalloc((char **)&info->dev_extra_mem, extra_mem_size);
 
   std::vector<std::shared_ptr<Connection>> recv_conn, send_conn;
@@ -406,7 +407,7 @@ void GreedyCommPattern::SaveProxy(Coordinator *coor, CommPatternInfo *raw_info,
   auto *info = raw_info->GetGreedyCommPatternInfo();
   int n_peers = coor->GetNPeers();
   int n_stages = info->n_stages;
-  auto max_comm_size = std::vector<int>(info->cpu_max_comm_size,
+  auto max_comm_size = std::vector<size_t>(info->cpu_max_comm_size,
                                         info->cpu_max_comm_size + n_stages);
   if (!forward) {
     std::reverse(max_comm_size.begin(), max_comm_size.end());
@@ -420,15 +421,15 @@ void GreedyCommPattern::SaveProxy(Coordinator *coor, CommPatternInfo *raw_info,
     args.buffer_size = info->buffer_size;
     args.feat_size = feat_size;
     args.n_threads = n_threads;
-    std::vector<int> send_comm_off, recv_comm_off;
+    std::vector<size_t> send_comm_off, recv_comm_off;
     for (int stage = 0; stage < n_stages; ++stage) {
       int pos = stage * n_peers + peer;
-      int *ptr = info->cpu_send_off;
+      size_t *ptr = info->cpu_send_off;
       send_comm_off.push_back(ptr[pos + 1] - ptr[pos]);
     }
     for (int stage = 0; stage < n_stages; ++stage) {
       int pos = stage * n_peers + peer;
-      int *ptr = info->cpu_recv_off;
+      size_t *ptr = info->cpu_recv_off;
       recv_comm_off.push_back(ptr[pos + 1] - ptr[pos]);
     }
     if (!forward) {

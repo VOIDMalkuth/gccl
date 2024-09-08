@@ -40,7 +40,7 @@ struct __align__(16) CommPatternInfo {
   RingCommPatternInfo *GetRingCommPatternInfo() const;
   AllToAllCommPatternInfo *GetAllToAllCommPatternInfo() const;
   GreedyCommPatternInfo *GetGreedyCommPatternInfo() const;
-  int GetMemBytes() const;
+  size_t GetMemBytes() const;
 };
 
 class CommPattern {

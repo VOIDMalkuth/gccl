@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 
 #include "glog/logging.h"
@@ -21,9 +22,17 @@ inline void zmq_send_common(zmq::socket_t *socket, const void *data,
   CHECK(socket != nullptr) << "[ZMQ Helper] zmq::socket_t cannot be nullptr!";
   CHECK(data != nullptr || len == 0)
       << "[ZMQ Helper] data and len are not matched!";
+  // std::cout << "Sending " << len << "bytes" << std::endl;
   while (true) try {
       size_t bytes = socket->send(data, len, flag);
-      CHECK(bytes == len) << "[ZMQ Helper] zmq::send error!";
+      // std::cout << "Actually sent " << bytes << "bytes" << std::endl;
+      if (len <= INT_MAX) {
+        CHECK(bytes == len) << "[ZMQ Helper] zmq::send error!";
+      } else  {
+        // libzmq trancutes here
+        // todo: better check
+        std::cout << "Skipping check since length exceeds INT_MAX, actually sent " << bytes << "bytes" << std::endl;
+      }
       break;
     } catch (zmq::error_t e) {
       switch (e.num()) {

@@ -43,18 +43,18 @@ typedef struct {
   // connectHandle
   gcclResult_t (*accept)(void* listenComm, void** recvComm);
   // Asynchronous send to a peer. Type is either GCCL_PTR_HOST or NCCL_PTR_CUDA.
-  gcclResult_t (*isend)(void* sendComm, void* data, int size, int type,
+  gcclResult_t (*isend)(void* sendComm, void* data, size_t size, int type,
                         void** request);
   // Asynchronous recv from a peer. Type is either GCCL_PTR_HOST or
   // GCCL_PTR_CUDA.
-  gcclResult_t (*irecv)(void* recvComm, void* data, int size, int type,
+  gcclResult_t (*irecv)(void* recvComm, void* data, size_t size, int type,
                         void** request);
   // Perform a flush/fence to make sure all data received with GCCL_PTR_CUDA is
   // visible to the GPU
-  gcclResult_t (*flush)(void* recvComm, void* data, int size);
+  gcclResult_t (*flush)(void* recvComm, void* data, size_t size);
   // Test whether a request is complete and return the size received (can be
   // less than requested).
-  gcclResult_t (*test)(void* request, int* done, int* size);
+  gcclResult_t (*test)(void* request, int* done, size_t* size);
   // Close and free send/recv comm objects
   gcclResult_t (*closeSend)(void* sendComm);
   gcclResult_t (*closeRecv)(void* recvComm);

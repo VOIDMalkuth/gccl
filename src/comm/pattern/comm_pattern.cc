@@ -117,7 +117,7 @@ void CommPatternInfo::Print() const {
   }
 #endif
 }
-int CommPatternInfo::GetMemBytes() const {
+size_t CommPatternInfo::GetMemBytes() const {
   switch(type) {
     case Greedy: {
       auto *greedy_info = GetGreedyCommPatternInfo();

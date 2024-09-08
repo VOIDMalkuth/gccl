@@ -100,7 +100,7 @@ static int getNvlinkGpu(const char* busId1, const char* busId2) {
 
     // Old versions of NVML return a lowercase PCI ID
     char* p = remoteProc.busId;
-    for (int c = 0; c < NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE; c++) {
+    for (size_t c = 0; c < NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE; c++) {
       if (p[c] == 0) break;
       p[c] = toupper(p[c]);
     }
@@ -113,7 +113,7 @@ static int getNvlinkGpu(const char* busId1, const char* busId2) {
       // PCI system path is in lower case
       char* p = remoteProc.busId;
       char lowerId[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE];
-      for (int c = 0; c < NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE; c++) {
+      for (size_t c = 0; c < NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE; c++) {
         if (p[c] == 0) break;
         lowerId[c] = tolower(p[c]);
       }
@@ -161,7 +161,7 @@ static int getNumNvlinks(const char* busId) {
     // PCI system path is in lower case
     char* p = remoteProc.busId;
     char lowerId[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE];
-    for (int c = 0; c < NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE; c++) {
+    for (size_t c = 0; c < NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE; c++) {
       if (p[c] == 0) break;
       lowerId[c] = tolower(p[c]);
     }

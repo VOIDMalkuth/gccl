@@ -38,7 +38,7 @@ void GCCLCudaMalloc(T **ptr) {
 }
 
 template <typename T>
-void GCCLCudaMalloc(T **ptr, int size) {
+void GCCLCudaMalloc(T **ptr, size_t size) {
   cudaMalloc(ptr, sizeof(T) * size);
   cudaMemset(*ptr, 0, sizeof(T) * size);
 }
@@ -46,7 +46,7 @@ void GCCLCudaMalloc(T **ptr, int size) {
 void GCCLSetCudaDevice(int dev_id);
 
 template <typename T>
-void GCCLMallocAndCopy(T **ret, const T *src, int size) {
+void GCCLMallocAndCopy(T **ret, const T *src, size_t size) {
   GCCLCudaMalloc(ret, size);
   cudaMemcpy(*ret, src, sizeof(T) * size, cudaMemcpyHostToDevice);
 }
@@ -63,14 +63,14 @@ static inline void GCCLCudaHostAlloc(void **ptr, void **devPtr, size_t size) {
 }
 
 template <typename T>
-std::string CudaVecToString(T *ptr, int size) {
+std::string CudaVecToString(T *ptr, size_t size) {
   std::vector<T> vec(size);
   cudaMemcpy(vec.data(), ptr, size * sizeof(T), cudaMemcpyDeviceToHost);
   return VecToString(vec);
 }
 
 template <typename T>
-void GCCLCopyToCPU(T *dst, const T *src, int size) {
+void GCCLCopyToCPU(T *dst, const T *src, size_t size) {
   cudaMemcpy(dst, src, sizeof(T) * size, cudaMemcpyDefault);
 }
 }  // namespace gccl

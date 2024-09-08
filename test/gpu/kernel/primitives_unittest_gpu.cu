@@ -160,6 +160,23 @@ int *CreateUniquedArray(int size, int range, std::set<int> *st = nullptr) {
   return ret;
 }
 
+long long *CreateUniquedArrayLongLong(int size, int range, std::set<int> *st = nullptr) {
+  long long *ret = new long long[size];
+  std::set<int> exists;
+  for (int i = 0; i < size; ++i) {
+    while (1) {
+      int t = rand() % range;
+      if (st != nullptr && st->count(t) > 0) continue;
+      if (exists.count(t) > 0) continue;
+      exists.insert(t);
+      ret[i] = t;
+      break;
+    }
+  }
+  std::sort(ret, ret + size);
+  return ret;
+}
+
 void BuildLargeCommPatternInfo(
     std::vector<CommPatternInfo> *infos,
     std::vector<CommPatternInfo> *cpu_infos, std::vector<int *> *inputs,
@@ -177,7 +194,7 @@ void BuildLargeCommPatternInfo(
     int send_size = send_recv_size[i].first;
     int recv_size = send_recv_size[i].second;
     ring_infos[i]->send_ids =
-        CreateUniquedArray(send_size, input_size + extra_buff_size);
+        CreateUniquedArrayLongLong(send_size, input_size + extra_buff_size);
     std::set<int> id_set;
     for (int j = 0; j < send_size; ++j) {
       auto &id = ring_infos[i]->send_ids[j];
@@ -187,7 +204,7 @@ void BuildLargeCommPatternInfo(
       }
     }
     ring_infos[i]->recv_ids =
-        CreateUniquedArray(recv_size, input_size + extra_buff_size, &id_set);
+        CreateUniquedArrayLongLong(recv_size, input_size + extra_buff_size, &id_set);
     for (int j = 0; j < recv_size; ++j) {
       auto &id = ring_infos[i]->recv_ids[j];
       if (id >= input_size) {

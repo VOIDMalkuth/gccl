@@ -39,21 +39,21 @@ static gcclResult_t gcclNetAccept(void* listenComm, void** recvComm) {
   GCCLCHECK(gcclNet->accept(listenComm, recvComm));
   return gcclSuccess;
 }
-static gcclResult_t gcclNetIsend(void* sendComm, void* data, int size, int type,
+static gcclResult_t gcclNetIsend(void* sendComm, void* data, size_t size, int type,
                                  void** request) {
   GCCLCHECK(gcclNet->isend(sendComm, data, size, type, request));
   return gcclSuccess;
 }
-static gcclResult_t gcclNetIrecv(void* recvComm, void* data, int size, int type,
+static gcclResult_t gcclNetIrecv(void* recvComm, void* data, size_t size, int type,
                                  void** request) {
   GCCLCHECK(gcclNet->irecv(recvComm, data, size, type, request));
   return gcclSuccess;
 }
-static gcclResult_t gcclNetFlush(void* recvComm, void* data, int size) {
+static gcclResult_t gcclNetFlush(void* recvComm, void* data, size_t size) {
   GCCLCHECK(gcclNet->flush(recvComm, data, size));
   return gcclSuccess;
 }
-static gcclResult_t gcclNetTest(void* request, int* done, int* size) {
+static gcclResult_t gcclNetTest(void* request, int* done, size_t* size) {
   GCCLCHECK(gcclNet->test(request, done, size));
   return gcclSuccess;
 }

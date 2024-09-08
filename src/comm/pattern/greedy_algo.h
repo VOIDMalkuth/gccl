@@ -8,7 +8,7 @@ namespace gccl {
 
 struct NodeScatterDecision {
   int n_stages;
-  std::vector<int> offset;
+  std::vector<size_t> offset;
   std::vector<std::pair<int, int>>
       send_pairs;  // (i, u, v) at stage i, send to device v from device u;
 };

@@ -57,16 +57,16 @@ void DispatchFloat(gcclComm_t comm, float *data, int feat_size,
                    int local_n_nodes, float *local_data, int no_remote) {
   auto *comm_sch = comm->GetCommScheduler();
   auto *coor = comm->GetCoordinator();
-  comm_sch->DispatchData(coor, (char *)data, feat_size, sizeof(float),
-                         local_n_nodes, (char *)local_data, no_remote);
+  comm_sch->DispatchData(coor, (char *)data, (size_t)feat_size, sizeof(float),
+                         (size_t)local_n_nodes, (char *)local_data, no_remote);
 }
 
 void DispatchInt(gcclComm_t comm, int *data, int feat_size, int local_n_nodes,
                  int *local_data, int no_remote) {
   auto *comm_sch = comm->GetCommScheduler();
   auto *coor = comm->GetCoordinator();
-  comm_sch->DispatchData(coor, (char *)data, feat_size, sizeof(int),
-                         local_n_nodes, (char *)local_data, no_remote);
+  comm_sch->DispatchData(coor, (char *)data, (size_t)feat_size, sizeof(int),
+                         (size_t)local_n_nodes, (char *)local_data, no_remote);
 }
 
 void SetConfig(gcclComm_t comm, const std::string &config_json) {

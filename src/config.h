@@ -10,8 +10,8 @@ struct Config {
   int world_size;
   int n_blocks;
   int n_threads;         // nthreads per block
-  int buffer_size;       // buffer_size in bytes
-  int max_feat_size;     // max feature size in 4 bytes
+  size_t buffer_size;       // buffer_size in bytes
+  size_t max_feat_size;     // max feature size in 4 bytes
   int threads_per_conn;  // greedy comm
   int repeat_ring;       // ring repeat time
   std::vector<std::vector<int>> rings;

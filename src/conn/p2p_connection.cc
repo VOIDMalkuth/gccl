@@ -12,14 +12,14 @@ namespace gccl {
 // For debug
 uint64_t HashIpcHandle(cudaIpcMemHandle_t handle) {
   uint64_t ret = 0;
-  for (int i = 0; i < CUDA_IPC_HANDLE_SIZE; ++i) {
+  for (size_t i = 0; i < CUDA_IPC_HANDLE_SIZE; ++i) {
     ret = ret * 233 + handle.reserved[i];
   }
   return ret;
 }
 
 void P2pConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
-                              int buffer_size, ConnInfo* conn_info,
+                              size_t buffer_size, ConnInfo* conn_info,
                               ExchangeConnInfo* ex_info) {
   GCCLCudaMalloc(send_dev_mem, 1);
   conn_info->my_substage_done = &(*send_dev_mem)->substage_done;
@@ -34,9 +34,9 @@ void P2pConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
 }
 
 void P2pConnection::RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
-                              int buffer_size, ConnInfo* conn_info,
+                              size_t buffer_size, ConnInfo* conn_info,
                               ExchangeConnInfo* ex_info) {
-  int dev_mem_size = offsetof(RecvDevMem, buff) + buffer_size;
+  size_t dev_mem_size = offsetof(RecvDevMem, buff) + buffer_size;
   DLOG(INFO) << "buffer size is " << buffer_size << " dev mem size "
             << dev_mem_size;
   GCCLCudaMalloc((char**)recv_dev_mem, dev_mem_size);
@@ -55,7 +55,7 @@ void P2pConnection::RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
 }
 
 void P2pConnection::SendConn(ConnInfo* conn_info, void* send_resources,
-                             int buffer_size, ExchangeConnInfo* peer_ex_info) {
+                             size_t buffer_size, ExchangeConnInfo* peer_ex_info) {
   P2pExchangeConnInfo* peer_info = (P2pExchangeConnInfo*)peer_ex_info;
   RecvDevMem* ptr;
   CUDACHECK(cudaIpcOpenMemHandle((void**)&ptr, peer_info->dev_ipc,

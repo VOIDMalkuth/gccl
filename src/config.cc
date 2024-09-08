@@ -62,7 +62,7 @@ Config LoadConfig(const std::string& file) {
   config_json.at("max_feat_size").get_to(config.max_feat_size);
   int buffer_size_log2;
   config_json.at("buffer_size_log2").get_to(buffer_size_log2);
-  config.buffer_size = 1 << buffer_size_log2;
+  config.buffer_size = 1ll << buffer_size_log2;
   config_json.at("rings").get_to(config.rings);
   if (config_json.contains("rank_to_dev_id")) {
     config_json.at("rank_to_dev_id").get_to(config.rank_to_dev_id);

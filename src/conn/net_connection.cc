@@ -24,7 +24,7 @@ int getDev(int ringId, int nDev, int* scores) {
 }
 
 void NetConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
-                              int buffer_size, ConnInfo* conn_info,
+                              size_t buffer_size, ConnInfo* conn_info,
                               ExchangeConnInfo* ex_info) {
   struct netSendResources* resources;
   GCCLCalloc(&resources, 1);
@@ -45,7 +45,7 @@ void NetConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
   if (resources->cudaSupport)
     DLOG(INFO) << "Net: enabling net device " << resources->netDev
               << " to read from rank " << my_info_.rank;
-  int size = offsetof(struct RecvDevMem, buff) + buffer_size;
+  size_t size = offsetof(struct RecvDevMem, buff) + buffer_size;
   if (resources->cudaSupport) {
     GCCLCudaMalloc((char**)(&resources->devNetMem), size);
   }
@@ -57,7 +57,7 @@ void NetConnection::SendSetup(SendDevMem** send_dev_mem, void** send_resources,
 }
 
 void NetConnection::RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
-                              int buffer_size, ConnInfo* conn_info,
+                              size_t buffer_size, ConnInfo* conn_info,
                               ExchangeConnInfo* ex_info) {
   struct netRecvResources* resources;
   GCCLCalloc(&resources, 1);
@@ -71,12 +71,12 @@ void NetConnection::RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
   GCCLCHECKNORET(gcclNetPtrSupport(resources->netDev, &flags));
   resources->cudaSupport = (flags & GCCL_PTR_CUDA) ? true : false;
 
-  int sendSize = sizeof(struct SendDevMem);
+  size_t sendSize = sizeof(struct SendDevMem);
 
   GCCLCudaHostAlloc((void**)&resources->hostSendMem,
                     (void**)&resources->devHostSendMem, sendSize);
 
-  int recvSize = offsetof(struct RecvDevMem, buff) + buffer_size;
+  size_t recvSize = offsetof(struct RecvDevMem, buff) + buffer_size;
   if (resources->cudaSupport) {
     GCCLCudaMalloc((void**)&resources->devNetMem, recvSize);
   }
@@ -89,7 +89,7 @@ void NetConnection::RecvSetup(RecvDevMem** recv_dev_mem, void** recv_resources,
 }
 
 void NetConnection::SendConn(ConnInfo* conn_info, void* send_resources,
-                             int buffer_size, ExchangeConnInfo* peer_ex_info) {
+                             size_t buffer_size, ExchangeConnInfo* peer_ex_info) {
   struct netSendResources* resources = (netSendResources*)send_resources;
   conn_info->my_substage_done = &resources->devHostSendMem->substage_done;
 
@@ -126,8 +126,8 @@ void NetConnection::RecvConn(ConnInfo* conn_info, void* recv_resources,
 
 void NetSendProxy(gcclProxyArgs* args) {
   int n_stages = args->n_stages;
-  int buffer_size = args->buffer_size;
-  int feat_size = args->feat_size;
+  size_t buffer_size = args->buffer_size;
+  size_t feat_size = args->feat_size;
   netSendResources* resources = (netSendResources*)args->resources;
   void* local_buff = resources->cudaSupport ? resources->devNetMem->buff
                                             : resources->hostRecvMem->buff;
@@ -149,15 +149,15 @@ void NetSendProxy(gcclProxyArgs* args) {
     void* request = nullptr;
     uint64_t head = 0, tail = 0;
 
-    int type_size = 4;  // FIXME (FIX_TYPE_SIZE)
-    int comm_size = args->comm_off[stage];
-    int max_comm_size = args->max_comm_size[stage];
+    size_t type_size = 4;  // FIXME (FIX_TYPE_SIZE)
+    size_t comm_size = args->comm_off[stage];
+    size_t max_comm_size = args->max_comm_size[stage];
     int per_substage_n_ele = buffer_size /
                              (feat_size * type_size * args->n_threads) *
                              args->n_threads;
     int n_substages = DIVUP(max_comm_size, per_substage_n_ele);
-    int per_substage_size = feat_size * type_size * per_substage_n_ele;
-    int remaining_comm_size = comm_size * feat_size * type_size;
+    size_t per_substage_size = feat_size * type_size * per_substage_n_ele;
+    size_t remaining_comm_size = comm_size * feat_size * type_size;
 
     *next_ready = stage + 1;
     tail++;
@@ -178,7 +178,7 @@ void NetSendProxy(gcclProxyArgs* args) {
         }
       }
       if (head + 1 == *my_substage_done) {
-        int size = std::min(per_substage_size, remaining_comm_size);
+        size_t size = std::min(per_substage_size, remaining_comm_size);
         remaining_comm_size -= per_substage_size;
         if (remaining_comm_size < 0) {
           remaining_comm_size = 0;
@@ -202,8 +202,8 @@ void NetSendProxy(gcclProxyArgs* args) {
 
 void NetRecvProxy(gcclProxyArgs* args) {
   int n_stages = args->n_stages;
-  int buffer_size = args->buffer_size;
-  int feat_size = args->feat_size;
+  size_t buffer_size = args->buffer_size;
+  size_t feat_size = args->feat_size;
   netRecvResources* resources = (netRecvResources*)args->resources;
 
   DLOG(INFO) << "resources " << resources;
@@ -225,22 +225,22 @@ void NetRecvProxy(gcclProxyArgs* args) {
   for (int stage = 0; stage < n_stages; ++stage) {
     void* request;
 
-    int type_size = 4;  // FIXME (FIX_TYPE_SIZE)
-    int comm_size = args->comm_off[stage];
-    int max_comm_size = args->max_comm_size[stage];
+    size_t type_size = 4;  // FIXME (FIX_TYPE_SIZE)
+    size_t comm_size = args->comm_off[stage];
+    size_t max_comm_size = args->max_comm_size[stage];
     int per_substage_n_ele = buffer_size /
                              (feat_size * type_size * args->n_threads) *
                              args->n_threads;
     int n_substages = DIVUP(max_comm_size, per_substage_n_ele);
-    int per_substage_size = feat_size * type_size * per_substage_n_ele;
-    int remaining_comm_size = comm_size * feat_size * type_size;
+    size_t per_substage_size = feat_size * type_size * per_substage_n_ele;
+    size_t remaining_comm_size = comm_size * feat_size * type_size;
 
     DLOG(INFO) << "Recv proxy start for stage " << stage << " with substages: " << n_substages;
     int head = 0, tail = 0;
     while (head < n_substages) {
       int idle = 1;
       if (tail + 1 == *substage_ready) {
-        int size = std::min(per_substage_size, remaining_comm_size);
+        size_t size = std::min(per_substage_size, remaining_comm_size);
         remaining_comm_size -= per_substage_size;
         if (remaining_comm_size < 0) {
           remaining_comm_size = 0;
