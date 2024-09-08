@@ -6,6 +6,10 @@
 #include "metis.h"
 #include "param.h"
 
+#include <chrono>
+
+using namespace std::chrono;
+
 namespace gccl {
 
 void PartitionGraphMetis(int n, int *xadj, int *adjncy, int nparts, int *objval,
@@ -22,12 +26,13 @@ void PartitionGraphMetis(int n, int *xadj, int *adjncy, int nparts, int *objval,
   // auto result = METIS_PartGraphKway(&n, &ncon, xadj, adjncy, NULL, NULL,
   // NULL, &nparts, NULL,
   //                     NULL, NULL, objval, parts);
+  auto start = system_clock::now();
   idx_t options[METIS_NOPTIONS];
   METIS_SetDefaultOptions(options);
   options[METIS_OPTION_NUMBERING] = 0;
   options[METIS_OPTION_SEED] = 1;
   options[METIS_OPTION_PTYPE] = METIS_PTYPE_RB;
-  options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_TIME;
+  options[METIS_OPTION_DBGLVL] = METIS_DBG_INFO | METIS_DBG_INFO | METIS_DBG_TIME;
   long int nn = n;
   auto result =
       METIS_PartGraphRecursive(&n, &ncon, xadj, adjncy, NULL, NULL, NULL,
@@ -36,6 +41,8 @@ void PartitionGraphMetis(int n, int *xadj, int *adjncy, int nparts, int *objval,
   //    METIS_PartGraphKway(&n, &ncon, xadj, adjncy, NULL, NULL, NULL,
   //                             &nparts, NULL, NULL, options, objval, parts);
   CHECK_EQ(result, METIS_OK);
+  auto end = system_clock::now();
+  LOG(INFO) << "Finished partition graph, took " << duration_cast<seconds>(end - start).count() << "\n";
 }
 
 std::vector<int> PartitionGraphInternal(Graph &graph, int nparts) {

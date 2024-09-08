@@ -18,6 +18,10 @@
 #include "utils.h"
 #include "json_utils.h"
 
+#include<iostream>
+
+using namespace std::chrono;
+
 namespace gccl {
 
 void BuildAllgatherCommScheme(
@@ -26,17 +30,52 @@ void BuildAllgatherCommScheme(
     const std::vector<std::map<int, int>> &local_mappings,
     const std::vector<TransferRequest> &per_block_reqs, int n_parts,
     int n_blocks) {
+  
+  #pragma omp parallel for shared(infos, config, patterns, local_mappings, per_block_reqs, n_parts)
   for (int i = 0; i < n_blocks; ++i) {
     auto pattern_infos = patterns[i]->BuildCommPatternInfos(
-        config, local_mappings, per_block_reqs[i], n_parts);
-    for (int j = 0; j < n_parts; ++j) {
-      infos[j].allgather_scheme.comm_pattern_infos[i] = pattern_infos[j];
+      config, local_mappings, per_block_reqs[i], n_parts);
+
+    #pragma omp critical
+    {
+      for (int j = 0; j < n_parts; ++j) {
+        infos[j].allgather_scheme.comm_pattern_infos[i] = pattern_infos[j];
+      }
     }
   }
+  
+  
   for (int i = 0; i < n_parts; ++i) {
     infos[i].allgather_scheme.n_blocks = n_blocks;
   }
 }
+
+// std::vector<Graph> CommScheduler::BuildSubgraphs(
+//     const Graph &g, const std::vector<std::map<int, int>> &local_mappings,
+//     const std::vector<int> &parts, int nparts) {
+//   std::vector<std::vector<std::pair<int, int>>> edges(nparts);
+//   std::vector<Graph> sgs;
+//   int n_cross_edges = 0;
+//   auto func = [&n_cross_edges, &local_mappings, &parts, &edges](int u, int v) {
+//     int pu = parts[u];
+//     int pv = parts[v];
+//     int lu = local_mappings[pu].at(u);
+//     int lv = local_mappings[pv].at(v);
+//     if (pu == pv) {
+//       edges[pu].push_back({lu, lv});
+//     } else {
+//       n_cross_edges++;
+//       int remote_u = local_mappings[pv].at(u);
+//       edges[pv].push_back({remote_u, lv});
+//     }
+//   };
+//   g.ApplyEdge(func);
+//   for (auto &part_edge : edges) {
+//     sgs.push_back(Graph(part_edge));
+//   }
+//   LOG(INFO) << "Number of cross edges is " << n_cross_edges;
+//   return sgs;
+// }
 
 std::vector<Graph> CommScheduler::BuildSubgraphs(
     const Graph &g, const std::vector<std::map<int, int>> &local_mappings,
@@ -44,23 +83,56 @@ std::vector<Graph> CommScheduler::BuildSubgraphs(
   std::vector<std::vector<std::pair<int, int>>> edges(nparts);
   std::vector<Graph> sgs;
   int n_cross_edges = 0;
-  auto func = [&n_cross_edges, &local_mappings, &parts, &edges](int u, int v) {
-    int pu = parts[u];
-    int pv = parts[v];
-    int lu = local_mappings[pu].at(u);
-    int lv = local_mappings[pv].at(v);
-    if (pu == pv) {
-      edges[pu].push_back({lu, lv});
-    } else {
-      n_cross_edges++;
-      int remote_u = local_mappings[pv].at(u);
-      edges[pv].push_back({remote_u, lv});
+
+  const int chunks = 128;
+  const int chunk_size = (g.n_nodes + chunks - 1) / chunks;
+  std::vector<std::vector<std::vector<std::pair<int, int>>>> edges_chunk(chunks, std::vector<std::vector<std::pair<int, int>>>(nparts));
+
+  #pragma omp parallel for schedule(dynamic) shared(g, parts, local_mappings, edges, edges_chunk, nparts, chunks, chunk_size) reduction(+:n_cross_edges)
+  for (int oi = 0; oi < chunks; ++oi) {
+    for (int ii = 0; ii < chunk_size; ii++) {
+      int i = oi * chunk_size + ii;
+      if (i >= g.n_nodes) {
+        break;
+      }
+      int u = i;
+      int pu = parts[u];
+      int lu = local_mappings[pu].at(u);
+      for (int j = g.xadj[i]; j < g.xadj[i + 1]; ++j) {  
+        int v = g.adjncy[j];
+        int pv = parts[v];
+        int lv = local_mappings[pv].at(v);
+        
+        if (pu == pv) {
+          edges_chunk[oi][pv].push_back({lu, lv});
+        } else {
+          n_cross_edges += 1;
+          int remote_u = local_mappings[pv].at(u);
+          edges_chunk[oi][pv].push_back({remote_u, lv});
+        }
+      }
     }
-  };
-  g.ApplyEdge(func);
-  for (auto &part_edge : edges) {
-    sgs.push_back(Graph(part_edge));
   }
+
+  std::cout << "[info] edges_chunk finished" << std::endl;
+
+  #pragma omp parallel for schedule(dynamic) shared(edges, edges_chunk, nparts, chunks)
+  for (int j = 0; j < nparts; j++) {
+    for (int i = 0; i < chunks; i++) {
+      edges[j].insert(edges[j].end(), edges_chunk[i][j].begin(), edges_chunk[i][j].end());
+    }
+  }
+
+  std::cout << "[info] edges insert finished" << std::endl;
+
+  sgs.resize(nparts);
+  #pragma omp parallel for shared(edges, nparts, sgs)
+  for (int i = 0; i < nparts; i++) {
+    sgs[i] = Graph(edges[i]);
+  }
+
+  std::cout << "[info] graph creation finished" << std::endl;
+
   LOG(INFO) << "Number of cross edges is " << n_cross_edges;
   return sgs;
 }
@@ -149,8 +221,10 @@ void CommScheduler::BuildPartitionInfo(Coordinator *coor, Config *config,
     BuildAllgatherCommScheme(infos, config, comm_patterns_, local_mappings_,
                              per_block_reqs, n_peers, n_blocks);
     auto t2 = GetTime();
-    DLOG(INFO) << "Using time to allocalte req " << TimeDiff(t0, t1) << " build allgather comm " << TimeDiff(t1, t2);
+    LOG(INFO) << "Using time to allocalte req " << TimeDiff(t0, t1) << " build allgather comm " << TimeDiff(t1, t2);
     LOG(INFO) << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " ms";
+    std::cout << "Using time to allocalte req " << TimeDiff(t0, t1) << " build allgather comm " << TimeDiff(t1, t2) << std::endl;
+    std::cout << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " ms" << std::endl;
 
     GetConnPeers(infos, config, n_peers);
   }
@@ -162,9 +236,9 @@ void CommScheduler::BuildPartitionInfo(Coordinator *coor, Config *config,
   auto t2 = GetTime();
   (*info)->CopyGraphInfoToDev();
   CopyCommInfoToDev(*info);
-  DLOG(INFO) << "Using time to scatter comm info: " << TimeDiff(t0, t1);
-  DLOG(INFO) << "Using time to setup conn: " << TimeDiff(t0, t1);
-  DLOG(INFO) << "Build partition info done";
+  LOG(INFO) << "Using time to scatter comm info: " << TimeDiff(t0, t1);
+  LOG(INFO) << "Using time to setup conn: " << TimeDiff(t0, t1);
+  LOG(INFO) << "Build partition info done";
   google::FlushLogFiles(google::GLOG_INFO);
 }
 
@@ -246,16 +320,43 @@ void CommScheduler::PartitionGraph(Coordinator *coor, Graph &g,
     } else {
       graph = Graph(graph_file);
     }
+
+    auto part_begin = system_clock::now();
+
     parts_ = PartitionGraphInternal(graph, n_peers);
+    
+    auto part_done = system_clock::now();
+    std::cout << ">>Part took " << duration_cast<milliseconds>(part_done - part_begin).count() << "ms\n";
+    
     BuildLocalMappings(graph, n_peers, parts_);
+    auto build_map_done = system_clock::now();
+    std::cout << ">>Build map took " << duration_cast<milliseconds>(build_map_done - part_done).count() << "ms\n";
 
     requests_ = BuildTransferRequest(graph, n_peers, parts_);
+    auto build_request_done = system_clock::now();
+    std::cout << ">>Build request took " << duration_cast<milliseconds>(build_request_done - build_map_done).count() << "ms\n";
+
     subgraphs = BuildSubgraphs(graph, local_mappings_, parts_, n_peers);
+    auto build_subgraph_done = system_clock::now();
+    std::cout << ">>Build subgraph took " << duration_cast<milliseconds>(build_subgraph_done - build_request_done).count() << "ms\n";
   }
+  auto scatter_begin = system_clock::now();
   my_graph_ = coor->Scatter(subgraphs);
+  auto scatter_done = system_clock::now();
+  if (coor->IsRoot())
+  	std::cout << ">>Scatter subgraph took " << duration_cast<milliseconds>(scatter_done - scatter_begin).count() << "ms\n";
   BuildRawGraph(my_graph_, sgn, sg_xadj, sg_adjncy);
+  auto build_raw_graph_done = system_clock::now();
+  if (coor->IsRoot())
+  	std::cout << ">>Build raw graph took " << duration_cast<milliseconds>(build_raw_graph_done - scatter_done).count() << "ms\n";
   my_local_graph_info_ = coor->Scatter(all_local_graph_infos_);
+  auto scatter_local_graph_info_done = system_clock::now();
+  if (coor->IsRoot())
+  	std::cout << ">>Scatter local graph took " << duration_cast<milliseconds>(scatter_local_graph_info_done - build_raw_graph_done).count() << "ms\n";
   WriteCachedState(coor, dir.size() == 0 ? "" : part_dir, rank, coor->IsRoot());
+  auto write_cached_state_done = system_clock::now();
+  if (coor->IsRoot())
+  	std::cout << ">>Write cached state took " << duration_cast<milliseconds>(write_cached_state_done - scatter_local_graph_info_done).count() << "ms\n";
 }
 
 // Build local_mappings_ and all_local_graph_info_
@@ -389,14 +490,12 @@ void CommScheduler::DispatchData(Coordinator *coor, char *data, size_t feat_size
                                  char *local_data, int no_remote) {
   std::vector<std::vector<char>> vecs;
   size_t record_size = feat_size * data_size;  // in bytes
-  std::cout << "record_size:" << record_size << std::endl;
   if (coor->IsRoot()) {
     for (int i = 0; i < local_mappings_.size(); ++i) {
       const auto &mp = local_mappings_[i];
       int sub_local_n_nodes = all_local_graph_infos_[i].n_local_nodes;
 
       int sub_n_nodes = mp.size();
-      std::cout << "memcpy:" << sub_n_nodes << "x" << record_size << std::endl;
       
       std::vector<char> char_data(sub_n_nodes * record_size, 0);
       for (const auto &pair : mp) {
@@ -411,13 +510,10 @@ void CommScheduler::DispatchData(Coordinator *coor, char *data, size_t feat_size
       vecs.emplace_back(std::move(char_data));
     }
   }
-  std::cout << "scattering" << std::endl;
 
   auto my_data = coor->Scatter(vecs);
   CHECK_EQ(my_data.size(), local_n_nodes * record_size);
   memcpy(local_data, my_data.data(), local_n_nodes * record_size);
-
-  std::cout << "dispatch finished" << std::endl;
 }
 
 void CommScheduler::ScatterLocalGraphInfos(Coordinator *coor) {

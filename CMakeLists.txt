@@ -125,6 +125,13 @@ endif()
 # NVML
 list(APPEND GCCL_EXTERNAL_LIB /usr/local/cuda/lib64/stubs/libnvidia-ml.so)
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  list(APPEND GCCL_EXTERNAL_LIB OpenMP::OpenMP_CXX)
+else()
+  message(FATAL_ERROR "OpenMP NOT FOUND is not defined in environment")
+endif()
+
 file(GLOB gccl_src
           "src/*.cc"
           "src/base/*.cc"
