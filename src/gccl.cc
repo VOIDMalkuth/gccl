@@ -1,5 +1,7 @@
 #include "gccl.h"
 
+#include "comm/comm_info.h"
+
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
@@ -66,7 +68,7 @@ int GetLocalNNodes(gcclComm_t comm) {
   return comm_sch->GetLocalNNodes();
 }
 void FreeCommInfo(gcclCommInfo_t info) {
-  // TODO
+  delete info;
 }
 
 void DispatchFloat(gcclComm_t comm, float *data, int feat_size,

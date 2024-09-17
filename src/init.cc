@@ -26,6 +26,19 @@ void Initialize() {
       std::make_unique<Coordinator>(gccl_global.zmq_ctx.get());
 }
 
+void CommDestroy(gcclComm_t comm) { // all gcclComm_t comm will be invalid
+  if (!gccl_global.initialized) return;
+  // sync for all clients
+  gccl_global.coordinator->Barrier();
+
+  gccl_global.comms.clear();
+  gccl_global.coordinator.reset();
+  gccl_global.zmq_ctx.reset();
+  gccl_global.config.reset();
+  gcclNet = nullptr;
+  gccl_global.initialized = false;
+}
+
 gcclUniqueId GetUniqueId() {
   int port = GetAvailablePort();
   std::string bind_addr = std::string("tcp://*:") + std::to_string(port);

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 project(gccl LANGUAGES CXX CUDA)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include_directories(/usr/local/cuda/include)
 
@@ -148,6 +148,7 @@ include_directories(src ${GCCL_EXTERNAL_INCLUDES})
 add_library(gccl_static ${gccl_src})
 if(${HAVE_CUDA})
   target_compile_definitions(gccl_static PUBLIC HAVE_CUDA)
+  set(CMAKE_CUDA_ARCHITECTURES 70 75 80)
 endif()
 set_target_properties(gccl_static PROPERTIES PUBLIC_HEADER "src/gccl.h")
 set_target_properties(gccl_static PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

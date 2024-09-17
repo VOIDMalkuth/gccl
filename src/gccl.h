@@ -59,6 +59,8 @@ int GetDeviceId(gcclComm_t comm);
 // id `comm_id` and their own rank.
 void CommInitRank(gcclComm_t *comm, int nranks, gcclUniqueId comm_id, int rank, int device_id);
 
+void CommDestroy(gcclComm_t comm);
+
 // Partition a graph under the communicator `comm`.
 // `(n, xadj, adjncy)` is the csr graph format which is provided  by the root process
 // After partition, each process will have the communication information `info` and
