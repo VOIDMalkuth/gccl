@@ -31,16 +31,11 @@ void BuildAllgatherCommScheme(
     const std::vector<TransferRequest> &per_block_reqs, int n_parts,
     int n_blocks) {
   
-  #pragma omp parallel for shared(infos, config, patterns, local_mappings, per_block_reqs, n_parts)
   for (int i = 0; i < n_blocks; ++i) {
     auto pattern_infos = patterns[i]->BuildCommPatternInfos(
       config, local_mappings, per_block_reqs[i], n_parts);
-
-    #pragma omp critical
-    {
-      for (int j = 0; j < n_parts; ++j) {
-        infos[j].allgather_scheme.comm_pattern_infos[i] = pattern_infos[j];
-      }
+    for (int j = 0; j < n_parts; ++j) {
+      infos[j].allgather_scheme.comm_pattern_infos[i] = pattern_infos[j];
     }
   }
   
@@ -222,9 +217,9 @@ void CommScheduler::BuildPartitionInfo(Coordinator *coor, Config *config,
                              per_block_reqs, n_peers, n_blocks);
     auto t2 = GetTime();
     LOG(INFO) << "Using time to allocalte req " << TimeDiff(t0, t1) << " build allgather comm " << TimeDiff(t1, t2);
-    LOG(INFO) << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " ms";
+    LOG(INFO) << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " us";
     std::cout << "Using time to allocalte req " << TimeDiff(t0, t1) << " build allgather comm " << TimeDiff(t1, t2) << std::endl;
-    std::cout << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " ms" << std::endl;
+    std::cout << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " us" << std::endl;
 
     GetConnPeers(infos, config, n_peers);
   }
