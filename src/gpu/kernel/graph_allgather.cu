@@ -253,7 +253,7 @@ void GraphAllgather(gcclComm_t comm, gcclCommInfo_t info, void *input,
     n_threads =
         config->threads_per_conn * (comm->GetCoordinator()->GetNPeers() - 1);
   } else if (config->comm_pattern == "GREEDY") {
-    n_threads = 1024 / (info->n_conn_peers * 64) * (info->n_conn_peers * 64);
+    n_threads = 512 / (info->n_conn_peers * 64) * (info->n_conn_peers * 64);
     args.threads_per_conn = n_threads / info->n_conn_peers;
   }
   dim3 grid_dim(info->allgather_scheme.n_blocks);
@@ -316,7 +316,7 @@ void GraphAllgatherBackward(gcclComm_t comm, gcclCommInfo_t info, void *input,
     n_threads =
         config->threads_per_conn * (comm->GetCoordinator()->GetNPeers() - 1);
   } else if (config->comm_pattern == "GREEDY") {
-    n_threads = 1024 / (info->n_conn_peers * 64) * (info->n_conn_peers * 64);
+    n_threads = 512 / (info->n_conn_peers * 64) * (info->n_conn_peers * 64);
     args.threads_per_conn = n_threads / info->n_conn_peers;
   }
   dim3 grid_dim(info->allgather_scheme.n_blocks);
