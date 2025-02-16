@@ -52,6 +52,8 @@ gcclUniqueId GetUniqueId(const char *master, int port,
 // Initialize the log directory
 void InitLogs(const char *file);
 
+void DeInitLogs();
+
 int GetDeviceId(gcclComm_t comm);
 
 // Initialize a communication environment and store the communicator in `comm`.

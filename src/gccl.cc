@@ -61,6 +61,11 @@ void InitLogs(const char *name) {
   LOG(INFO) << "Init logs name is " << name;
 }
 
+void DeInitLogs() {
+  LOG(INFO) << "DeInitLogs is called!";
+  google::ShutdownGoogleLogging();
+}
+
 int GetDeviceId(gcclComm_t comm) { return comm->GetCoordinator()->GetDevId(); }
 
 int GetLocalNNodes(gcclComm_t comm) {

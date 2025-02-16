@@ -45,92 +45,94 @@ void BuildAllgatherCommScheme(
   }
 }
 
-// std::vector<Graph> CommScheduler::BuildSubgraphs(
-//     const Graph &g, const std::vector<std::map<int, int>> &local_mappings,
-//     const std::vector<int> &parts, int nparts) {
-//   std::vector<std::vector<std::pair<int, int>>> edges(nparts);
-//   std::vector<Graph> sgs;
-//   int n_cross_edges = 0;
-//   auto func = [&n_cross_edges, &local_mappings, &parts, &edges](int u, int v) {
-//     int pu = parts[u];
-//     int pv = parts[v];
-//     int lu = local_mappings[pu].at(u);
-//     int lv = local_mappings[pv].at(v);
-//     if (pu == pv) {
-//       edges[pu].push_back({lu, lv});
-//     } else {
-//       n_cross_edges++;
-//       int remote_u = local_mappings[pv].at(u);
-//       edges[pv].push_back({remote_u, lv});
-//     }
-//   };
-//   g.ApplyEdge(func);
-//   for (auto &part_edge : edges) {
-//     sgs.push_back(Graph(part_edge));
-//   }
-//   LOG(INFO) << "Number of cross edges is " << n_cross_edges;
-//   return sgs;
-// }
-
+// * 1. 对于每一个边，如果其邻居都在分区内，则加入这个边
+// * 2. 对于每一个边，如果其邻居有一个不在分区内，则加入这个边，并记录这个边的两个节点，记为cross边，需要接受这个节点的图加入这个边
 std::vector<Graph> CommScheduler::BuildSubgraphs(
     const Graph &g, const std::vector<std::map<int, int>> &local_mappings,
     const std::vector<int> &parts, int nparts) {
   std::vector<std::vector<std::pair<int, int>>> edges(nparts);
   std::vector<Graph> sgs;
   int n_cross_edges = 0;
-
-  const int chunks = 128;
-  const int chunk_size = (g.n_nodes + chunks - 1) / chunks;
-  std::vector<std::vector<std::vector<std::pair<int, int>>>> edges_chunk(chunks, std::vector<std::vector<std::pair<int, int>>>(nparts));
-
-  #pragma omp parallel for schedule(dynamic) shared(g, parts, local_mappings, edges, edges_chunk, nparts, chunks, chunk_size) reduction(+:n_cross_edges)
-  for (int oi = 0; oi < chunks; ++oi) {
-    for (int ii = 0; ii < chunk_size; ii++) {
-      int i = oi * chunk_size + ii;
-      if (i >= g.n_nodes) {
-        break;
-      }
-      int u = i;
-      int pu = parts[u];
-      int lu = local_mappings[pu].at(u);
-      for (int j = g.xadj[i]; j < g.xadj[i + 1]; ++j) {  
-        int v = g.adjncy[j];
-        int pv = parts[v];
-        int lv = local_mappings[pv].at(v);
-        
-        if (pu == pv) {
-          edges_chunk[oi][pv].push_back({lu, lv});
-        } else {
-          n_cross_edges += 1;
-          int remote_u = local_mappings[pv].at(u);
-          edges_chunk[oi][pv].push_back({remote_u, lv});
-        }
-      }
+  auto func = [&n_cross_edges, &local_mappings, &parts, &edges](int u, int v) {
+    int pu = parts[u];
+    int pv = parts[v];
+    int lu = local_mappings[pu].at(u);
+    int lv = local_mappings[pv].at(v);
+    if (pu == pv) {
+      edges[pu].push_back({lu, lv});
+    } else {
+      n_cross_edges++;
+      int remote_u = local_mappings[pv].at(u);
+      edges[pv].push_back({remote_u, lv});
     }
+  };
+  g.ApplyEdge(func);
+  for (auto &part_edge : edges) {
+    sgs.push_back(Graph(part_edge));
   }
-
-  std::cout << "[info] edges_chunk finished" << std::endl;
-
-  #pragma omp parallel for schedule(dynamic) shared(edges, edges_chunk, nparts, chunks)
-  for (int j = 0; j < nparts; j++) {
-    for (int i = 0; i < chunks; i++) {
-      edges[j].insert(edges[j].end(), edges_chunk[i][j].begin(), edges_chunk[i][j].end());
-    }
-  }
-
-  std::cout << "[info] edges insert finished" << std::endl;
-
-  sgs.resize(nparts);
-  #pragma omp parallel for shared(edges, nparts, sgs)
-  for (int i = 0; i < nparts; i++) {
-    sgs[i] = Graph(edges[i]);
-  }
-
-  std::cout << "[info] graph creation finished" << std::endl;
-
   LOG(INFO) << "Number of cross edges is " << n_cross_edges;
   return sgs;
 }
+
+// std::vector<Graph> CommScheduler::BuildSubgraphs(
+//     const Graph &g, const std::vector<std::map<int, int>> &local_mappings,
+//     const std::vector<int> &parts, int nparts) {
+//   std::vector<std::vector<std::pair<int, int>>> edges(nparts);
+//   std::vector<Graph> sgs;
+//   int n_cross_edges = 0;
+
+//   const int chunks = 128;
+//   const int chunk_size = (g.n_nodes + chunks - 1) / chunks;
+//   std::vector<std::vector<std::vector<std::pair<int, int>>>> edges_chunk(chunks, std::vector<std::vector<std::pair<int, int>>>(nparts));
+
+//   #pragma omp parallel for schedule(dynamic) shared(g, parts, local_mappings, edges, edges_chunk, nparts, chunks, chunk_size) reduction(+:n_cross_edges)
+//   for (int oi = 0; oi < chunks; ++oi) {
+//     for (int ii = 0; ii < chunk_size; ii++) {
+//       int i = oi * chunk_size + ii;
+//       if (i >= g.n_nodes) {
+//         break;
+//       }
+//       int u = i;
+//       int pu = parts[u];
+//       int lu = local_mappings[pu].at(u);
+//       for (int j = g.xadj[i]; j < g.xadj[i + 1]; ++j) {  
+//         int v = g.adjncy[j];
+//         int pv = parts[v];
+//         int lv = local_mappings[pv].at(v);
+        
+//         if (pu == pv) {
+//           edges_chunk[oi][pv].push_back({lu, lv});
+//         } else {
+//           n_cross_edges += 1;
+//           int remote_u = local_mappings[pv].at(u);
+//           edges_chunk[oi][pv].push_back({remote_u, lv});
+//         }
+//       }
+//     }
+//   }
+
+//   std::cout << "[info] edges_chunk finished" << std::endl;
+
+//   #pragma omp parallel for schedule(dynamic) shared(edges, edges_chunk, nparts, chunks)
+//   for (int j = 0; j < nparts; j++) {
+//     for (int i = 0; i < chunks; i++) {
+//       edges[j].insert(edges[j].end(), edges_chunk[i][j].begin(), edges_chunk[i][j].end());
+//     }
+//   }
+
+//   std::cout << "[info] edges insert finished" << std::endl;
+
+//   sgs.resize(nparts);
+//   #pragma omp parallel for shared(edges, nparts, sgs)
+//   for (int i = 0; i < nparts; i++) {
+//     sgs[i] = Graph(edges[i]);
+//   }
+
+//   std::cout << "[info] graph creation finished" << std::endl;
+
+//   LOG(INFO) << "Number of cross edges is " << n_cross_edges;
+//   return sgs;
+// }
 
 void GetConnPeers(std::vector<CommInfo> &infos, Config *config, int n_peers) {
   std::shared_ptr<DevGraph> dev_graph;
@@ -355,6 +357,10 @@ void CommScheduler::PartitionGraph(Coordinator *coor, Graph &g,
 }
 
 // Build local_mappings_ and all_local_graph_info_
+// * 对于每一个节点
+// * 1. 将其放到分区的local_nodes里
+// * 2. 对于每一个邻居节点，如果邻居节点不在同一个分区，将其放到remote_nodes里，并去重
+// * 3. 对于每一个分区，将local_nodes和remote_nodes合并，得到一个分区的所有节点，并记录原始节点与新分区内节点的编号关系
 void CommScheduler::BuildLocalMappings(Graph &g, int n_parts,
                                        const std::vector<int> &parts) {
   all_local_graph_infos_.resize(n_parts);
@@ -394,6 +400,8 @@ void CommScheduler::BuildLocalMappings(Graph &g, int n_parts,
   local_mappings_ = std::move(mappings);
 }
 
+// * 1. 对于每一个节点，如果其邻居节点不在同一个分区，将其加入到req_ids中 （u->v单向）
+// * 2. 对于每一个分区，去重
 TransferRequest CommScheduler::BuildTransferRequest(
     Graph &g, int nparts, const std::vector<int> &parts) {
   TransferRequest req;
