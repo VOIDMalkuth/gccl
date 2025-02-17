@@ -43,6 +43,9 @@ class CommScheduler {
 
   void LoadCachedPartition(Coordinator *coor, const std::string &dir, int *sgn,
                            int **sg_xadj, int **sg_adjncy);
+  
+  void LocalGraphDetailedInfo(int *global_nodes, int *local_owned_nodes, int *remote_owned_nodes,
+                                          int **graph_parts, int **my_local_to_remote_mapping);
 
  private:
   void ReadCachedState(const std::string &part_dir, int rank, bool is_root);
@@ -59,6 +62,7 @@ class CommScheduler {
   std::vector<LocalGraphInfo> all_local_graph_infos_;  // All
   LocalGraphInfo my_local_graph_info_;                 // Mine
   Graph my_graph_;                                     // Mine
+  std::map<int, int> my_local_mapping_;                // Mine
 };
 
 }  // namespace gccl

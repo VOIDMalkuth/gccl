@@ -1,6 +1,7 @@
 #include "comm/comm_scheduler.h"
 
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <chrono>
 #include <iostream>
@@ -174,6 +175,8 @@ void CommScheduler::BuildPartitionInfo(Coordinator *coor, Config *config,
   coor->Barrier();
 
   if (read_cache) {
+    LOG(ERROR) << "Doesn't support reading cached partition for now"; // later: implement this
+    assert(false);
     LoadCachedPartition(coor, graph_dir, sgn, sg_xadj, sg_adjncy);
   } else {
     PartitionGraph(coor, g, graph_dir, n_peers, sgn, sg_xadj, sg_adjncy);
@@ -354,6 +357,30 @@ void CommScheduler::PartitionGraph(Coordinator *coor, Graph &g,
   auto write_cached_state_done = system_clock::now();
   if (coor->IsRoot())
   	std::cout << ">>Write cached state took " << duration_cast<milliseconds>(write_cached_state_done - scatter_local_graph_info_done).count() << "ms\n";
+
+  auto my_local_mapping_scatter_begin = system_clock::now();
+  my_local_mapping_ = coor->Scatter(local_mappings_);
+  auto my_local_mapping_scatter_done = system_clock::now();
+  if (coor->IsRoot())
+    std::cout << ">>Scatter local_mapping took " << duration_cast<milliseconds>(my_local_mapping_scatter_done - my_local_mapping_scatter_begin).count() << "ms\n";
+  
+  auto parts_broadcast_begin = system_clock::now();
+  coor->Broadcast(parts_);
+  auto parts_broadcast_done = system_clock::now();
+  if (coor->IsRoot())
+    std::cout << ">>Broadcast parts_ took " << duration_cast<milliseconds>(parts_broadcast_done - parts_broadcast_begin).count() << "ms\n";
+}
+
+void CommScheduler::LocalGraphDetailedInfo(
+  int *global_nodes, int *local_owned_nodes, int *remote_owned_nodes, int **graph_parts, int **my_local_to_remote_mapping) {
+  *global_nodes = parts_.size();
+  *local_owned_nodes = my_local_graph_info_.n_local_nodes;
+  *remote_owned_nodes = my_local_graph_info_.n_nodes - my_local_graph_info_.n_local_nodes;
+  CopyVectorToRawPtr(graph_parts, parts_);
+  std::vector<int> my_local_to_remote_mapping_vec;
+  std::transform(my_local_mapping_.begin(), my_local_mapping_.end(), std::back_inserter(my_local_to_remote_mapping_vec),
+                  [](const std::pair<int, int>& pair) { return pair.first; });
+  CopyVectorToRawPtr(my_local_to_remote_mapping, my_local_to_remote_mapping_vec);
 }
 
 // Build local_mappings_ and all_local_graph_info_

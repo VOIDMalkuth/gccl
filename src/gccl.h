@@ -79,6 +79,9 @@ void PartitionGraph(gcclComm_t comm, const char *cached_dir,
                     gcclCommInfo_t *info, int *sgn, int **sg_xadj,
                     int **sg_adjncy);
 
+void LocalGraphDetailedInfo(gcclComm_t comm, int *global_nodes, int *local_owned_nodes,
+  int *remote_owned_nodes, int **graph_parts, int **my_local_to_remote_mapping);
+
 int GetLocalNNodes(gcclComm_t comm);
 
 // TODO

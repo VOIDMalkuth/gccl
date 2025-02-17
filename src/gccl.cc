@@ -56,6 +56,13 @@ void PartitionGraph(gcclComm_t comm, const char *cached_dir,
   std::cout << "Build part info took" << duration_cast<seconds>(build_part_info_done - build_graph_end).count() << "s\n" << std::endl;
 }
 
+void LocalGraphDetailedInfo(gcclComm_t comm, int *global_nodes, int *local_owned_nodes,
+    int *remote_owned_nodes, int **graph_parts, int **my_local_to_remote_mapping) {
+  auto *comm_sch = comm->GetCommScheduler();
+  comm_sch->LocalGraphDetailedInfo(global_nodes, local_owned_nodes,
+    remote_owned_nodes, graph_parts, my_local_to_remote_mapping);
+}
+
 void InitLogs(const char *name) {
   google::InitGoogleLogging(name);
   LOG(INFO) << "Init logs name is " << name;
