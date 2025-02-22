@@ -363,24 +363,26 @@ void CommScheduler::PartitionGraph(Coordinator *coor, Graph &g,
   auto my_local_mapping_scatter_done = system_clock::now();
   if (coor->IsRoot())
     std::cout << ">>Scatter local_mapping took " << duration_cast<milliseconds>(my_local_mapping_scatter_done - my_local_mapping_scatter_begin).count() << "ms\n";
-  
-  auto parts_broadcast_begin = system_clock::now();
-  coor->Broadcast(parts_);
-  auto parts_broadcast_done = system_clock::now();
-  if (coor->IsRoot())
-    std::cout << ">>Broadcast parts_ took " << duration_cast<milliseconds>(parts_broadcast_done - parts_broadcast_begin).count() << "ms\n";
 }
 
-void CommScheduler::LocalGraphDetailedInfo(
-  int *global_nodes, int *local_owned_nodes, int *remote_owned_nodes, int **graph_parts, int **my_local_to_remote_mapping) {
-  *global_nodes = parts_.size();
-  *local_owned_nodes = my_local_graph_info_.n_local_nodes;
-  *remote_owned_nodes = my_local_graph_info_.n_nodes - my_local_graph_info_.n_local_nodes;
-  CopyVectorToRawPtr(graph_parts, parts_);
-  std::vector<int> my_local_to_remote_mapping_vec;
-  std::transform(my_local_mapping_.begin(), my_local_mapping_.end(), std::back_inserter(my_local_to_remote_mapping_vec),
-                  [](const std::pair<int, int>& pair) { return pair.first; });
-  CopyVectorToRawPtr(my_local_to_remote_mapping, my_local_to_remote_mapping_vec);
+void CommScheduler::GraphDetailedInfo(int **gid2pid, int **num_local_nodes, int **gid2lid_unordered) {  
+  CopyVectorToRawPtr(gid2pid, parts_);
+  std::vector<int> gid2lid_unordered_vec;
+  std::vector<int> num_local_nodes_vec;
+  for (int i = 0; i < local_mappings_.size(); i++) {
+    num_local_nodes_vec.push_back(local_mappings_[i].size());
+    // 只写local node的信息，否则remote的会盖住正确的local
+    auto graph_info = all_local_graph_infos_[i];
+    for (auto &pair : local_mappings_[i]) {
+      if (pair.second >= graph_info.n_local_nodes) {
+        continue;
+      }
+      gid2lid_unordered_vec.push_back(pair.first);
+      gid2lid_unordered_vec.push_back(pair.second);
+    }
+  }
+  CopyVectorToRawPtr(num_local_nodes, num_local_nodes_vec);
+  CopyVectorToRawPtr(gid2lid_unordered, gid2lid_unordered_vec);
 }
 
 // Build local_mappings_ and all_local_graph_info_

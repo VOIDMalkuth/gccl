@@ -44,8 +44,7 @@ class CommScheduler {
   void LoadCachedPartition(Coordinator *coor, const std::string &dir, int *sgn,
                            int **sg_xadj, int **sg_adjncy);
   
-  void LocalGraphDetailedInfo(int *global_nodes, int *local_owned_nodes, int *remote_owned_nodes,
-                                          int **graph_parts, int **my_local_to_remote_mapping);
+  void GraphDetailedInfo(int **gid2pid, int **num_local_nodes, int **gid2lid_unordered);
 
  private:
   void ReadCachedState(const std::string &part_dir, int rank, bool is_root);
