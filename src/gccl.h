@@ -68,6 +68,10 @@ void CommDestroy(gcclComm_t comm);
 // After partition, each process will have the communication information `info` and
 // their own subgraphs `(sgn, sg_xadj, sg_adjncy)`.
 void PartitionGraph(gcclComm_t comm, int n, int *xadj, int *adjncy,
+                    gcclCommInfo_t *info, int *sgn, int **sg_xadj, int **sg_adjncy,
+                    int mini_n, int *mini_xadj, int *mini_adjncy, int *mini_gid2mid, int *mini_node_weights, int *mini_edge_weights);
+
+void PartitionGraph(gcclComm_t comm, int n, int *xadj, int *adjncy,
                     gcclCommInfo_t *info, int *sgn, int **sg_xadj,
                     int **sg_adjncy);
 
@@ -75,6 +79,10 @@ void PartitionGraph(gcclComm_t comm, int n, int *xadj, int *adjncy,
 // It will partition the graph `cache_dir/graph.txt` if the `cache_dir/part-k` does not exist, where k is the number of processes.
 // Otherwise it will read the partition cache `cache_dir/part-k`.
 // After partition ,each process will have their communication scheme for the graph in `info`.
+void PartitionGraph(gcclComm_t comm, const char *cached_dir,
+                    gcclCommInfo_t *info, int *sgn, int **sg_xadj, int **sg_adjncy,
+                    int mini_n, int *mini_xadj, int *mini_adjncy, int *mini_gid2mid, int *mini_node_weights, int *mini_edge_weights);
+
 void PartitionGraph(gcclComm_t comm, const char *cached_dir,
                     gcclCommInfo_t *info, int *sgn, int **sg_xadj,
                     int **sg_adjncy);
