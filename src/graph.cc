@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <memory>
 #include <random>
 
 #include "glog/logging.h"
@@ -70,11 +71,25 @@ void Graph::WriteToFile(const std::string &file) const {
 }
 
 BinStream &Graph::serialize(BinStream &bs) const {
-  bs << n_nodes << n_edges << xadj << adjncy;
+  bs << n_nodes << n_edges << xadj << adjncy << gid2mid << node_weights << edge_weights;
+  if (mini_graph != nullptr) {
+    int flag = 1;
+    bs << flag;
+    bs << (*mini_graph);
+  } else {
+    int flag = 0;
+    bs << flag;
+  }
   return bs;
 }
 BinStream &Graph::deserialize(BinStream &bs) {
-  bs >> n_nodes >> n_edges >> xadj >> adjncy;
+  bs >> n_nodes >> n_edges >> xadj >> adjncy >> gid2mid >> node_weights >> edge_weights;
+  int flag;
+  bs >> flag;
+  if (flag) {
+    mini_graph = std::make_shared<Graph>();
+    bs >> (*mini_graph);
+  }
   return bs;
 }
 

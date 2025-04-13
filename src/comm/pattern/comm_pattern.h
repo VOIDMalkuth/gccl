@@ -16,6 +16,15 @@ namespace gccl {
 struct TransferRequest {
   // rank, rank, transfer id
   std::vector<std::vector<std::vector<int>>> req_ids;
+  BinStream &serialize(BinStream &stream) const {
+    stream << req_ids;
+    return stream;
+  }
+
+  BinStream &deserialize(BinStream &stream) {
+    stream >> req_ids;
+    return stream;
+  }
 };
 
 enum CommPatternType { Ring, AllToAll, Greedy };

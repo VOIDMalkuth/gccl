@@ -75,6 +75,13 @@ void PartitionGraph(gcclComm_t comm, int n, int *xadj, int *adjncy,
                     gcclCommInfo_t *info, int *sgn, int **sg_xadj,
                     int **sg_adjncy);
 
+void PrePartitionGraph(int n_peers, int n, int *xadj, int *adjncy,
+  int mini_n, int *mini_xadj, int *mini_adjncy, int *mini_gid2mid, int *mini_node_weights, int *mini_edge_weights,
+  size_t *bin_stream_size, char **bin_stream_data);
+
+void PartitionGraphWithPrepartInfo(gcclComm_t comm, gcclCommInfo_t *info, int *sgn, int **sg_xadj, int **sg_adjncy,
+  size_t bin_stream_size, char *bin_stream_data);
+
 // Partition a graph under the communicator 'comm'.
 // It will partition the graph `cache_dir/graph.txt` if the `cache_dir/part-k` does not exist, where k is the number of processes.
 // Otherwise it will read the partition cache `cache_dir/part-k`.

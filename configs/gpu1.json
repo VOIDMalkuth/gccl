@@ -10,5 +10,5 @@
   "comm_pattern": "ALLTOALL",
   "transport_level": "PCIE",
   "threads_per_conn": 64,
-  "dev_graph_file": "/root/gccl/configs/dev_graph.json"
+  "dev_graph_file": "/workspace/gccl/configs/dev_graph.json"
 }
