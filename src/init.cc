@@ -15,7 +15,7 @@ namespace gccl {
 GlobalState gccl_global;
 
 extern "C" __attribute__((visibility("default"))) gcclNet_t *gcclNet = NULL;
-void InitNet() { gcclNet = gcclIbSupport() ? &gcclNetIb : nullptr; }
+void InitNet() { gcclNet = gcclIbSupport() ? &gcclNetIb : &gcclNetSocket; }
 
 void Initialize() {
   if (gccl_global.initialized) return;

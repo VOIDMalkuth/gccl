@@ -19,7 +19,8 @@
 
 namespace gccl {
 
-#define MAX_IF_NAME_SIZE 16
+#define MAX_IF_NAME_SIZE 32
+#define MAX_IFS 16
 #define SLEEP_INT 1000   // sleep interval in usec
 #define RETRY_TIMES 2e4  // retry times before reporting a timeout (20 sec)
 
@@ -417,39 +418,82 @@ static gcclResult_t connectAddress(int* fd, union socketAddress* remoteAddr) {
   return gcclSuccess;
 }
 
-static gcclResult_t socketReceive(int fd, void* ptr, size_t size) {
+// static gcclResult_t socketReceive(int fd, void* ptr, size_t size) {
+//   char* data = (char*)ptr;
+//   size_t offset = 0;
+//   while (offset < size) {
+//     long long recvsize;
+//     SYSCHECKVAL(recv(fd, data, size - offset, 0), "recv", recvsize);
+//     if (recvsize == 0) {
+//       LOG(ERROR) << "Net : Connection closed by remote peer";
+//       return gcclSystemError;
+//     }
+//     if (recvsize == -1) {
+//       LOG(ERROR) << "Recv : got retcode " << errno << ", retrying";
+//       continue;
+//     }
+//     data += recvsize;
+//     offset += recvsize;
+//   }
+//   return gcclSuccess;
+// }
+
+// static gcclResult_t socketSend(int fd, void* ptr, size_t size) {
+//   char* data = (char*)ptr;
+//   size_t offset = 0;
+//   while (offset < size) {
+//     long long sendsize;
+//     SYSCHECKVAL(write(fd, data, size - offset), "write", sendsize);
+//     if (sendsize == -1) {
+//       LOG(ERROR) << "Send : got retcode " << errno << ", retrying";
+//       continue;
+//     }
+//     data += sendsize;
+//     offset += sendsize;
+//   }
+//   return gcclSuccess;
+// }
+
+#define GCCL_SOCKET_SEND 0
+#define GCCL_SOCKET_RECV 1
+static gcclResult_t socketProgress(int op, int fd, void* ptr, int size, int* offset) {
+  int bytes = 0;
   char* data = (char*)ptr;
-  size_t offset = 0;
-  while (offset < size) {
-    long long recvsize;
-    SYSCHECKVAL(recv(fd, data, size - offset, 0), "recv", recvsize);
-    if (recvsize == 0) {
+  do {
+    if (op == GCCL_SOCKET_RECV) bytes = recv(fd, data+(*offset), size-(*offset), MSG_DONTWAIT);
+    if (op == GCCL_SOCKET_SEND) bytes = send(fd, data+(*offset), size-(*offset), MSG_DONTWAIT);
+    if (op == GCCL_SOCKET_RECV && bytes == 0) {
       LOG(ERROR) << "Net : Connection closed by remote peer";
       return gcclSystemError;
     }
-    if (recvsize == -1) {
-      LOG(ERROR) << "Recv : got retcode " << errno << ", retrying";
-      continue;
+    if (bytes == -1) {
+      if (errno != EINTR && errno != EWOULDBLOCK && errno != EAGAIN) {
+        LOG(ERROR) << "Call to recv failed : " << strerror(errno);
+        return gcclSystemError;
+      } else {
+        bytes = 0;
+      }
     }
-    data += recvsize;
-    offset += recvsize;
-  }
+    (*offset) += bytes;
+  } while (bytes > 0 && (*offset) < size);
   return gcclSuccess;
 }
 
-static gcclResult_t socketSend(int fd, void* ptr, size_t size) {
-  char* data = (char*)ptr;
-  size_t offset = 0;
-  while (offset < size) {
-    long long sendsize;
-    SYSCHECKVAL(write(fd, data, size - offset), "write", sendsize);
-    if (sendsize == -1) {
-      LOG(ERROR) << "Send : got retcode " << errno << ", retrying";
-      continue;
-    }
-    data += sendsize;
-    offset += sendsize;
-  }
+static gcclResult_t socketWait(int op, int fd, void* ptr, int size, int* offset) {
+  while (*offset < size)
+    GCCLCHECK(socketProgress(op, fd, ptr, size, offset));
+  return gcclSuccess;
+}
+
+static gcclResult_t socketSend(int fd, void* ptr, int size) {
+  int offset = 0;
+  GCCLCHECK(socketWait(GCCL_SOCKET_SEND, fd, ptr, size, &offset));
+  return gcclSuccess;
+}
+
+static gcclResult_t socketReceive(int fd, void* ptr, int size) {
+  int offset = 0;
+  GCCLCHECK(socketWait(GCCL_SOCKET_RECV, fd, ptr, size, &offset));
   return gcclSuccess;
 }
 

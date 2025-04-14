@@ -73,6 +73,6 @@ static gcclResult_t gcclNetCloseListen(void* listenComm) {
 extern bool gcclIbSupport();
 extern gcclResult_t gcclSocketCreateHandle(void* opaqueHandle, const char* str);
 extern gcclNet_t gcclNetIb;
-// extern gcclNet_t gcclNetSocket;
+extern gcclNet_t gcclNetSocket;
 
 }  // namespace gccl
