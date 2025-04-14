@@ -53,8 +53,17 @@ std::vector<std::pair<int, int>> BuildEdges(int n, int *xadj, int *adjncy) {
   return edges;
 }
 
-Graph::Graph(int n, int *xadj, int *adjncy)
-    : Graph(n, BuildEdges(n, xadj, adjncy)) {}
+// Graph::Graph(int n, int *xadj, int *adjncy)
+//     : Graph(n, BuildEdges(n, xadj, adjncy)) {}
+
+Graph::Graph(int n, int *xadj, int *adjncy) {
+  this->n_nodes = n;
+  this->n_edges = xadj[n];
+  this->xadj = std::vector<int>(xadj, xadj + n + 1);
+  this->adjncy = std::vector<int>(adjncy, adjncy + n_edges);
+  // todo: assert this is ordered
+}
+
 
 Graph::Graph(const std::string &file) {
   auto csr_vec = ReadGraph(file);
