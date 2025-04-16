@@ -397,12 +397,23 @@ void CommScheduler::GraphDetailedInfo(int **gid2pid, int **num_local_nodes, int 
 std::pair<std::vector<LocalGraphInfo>, std::vector<std::map<int, int>>>
 CommScheduler::BuildLocalMappingsInternal(Graph &g, int n_parts,
                                        const std::vector<int> &parts) {
+  auto total_start_time = std::chrono::high_resolution_clock::now();
+  
   std::vector<LocalGraphInfo> all_local_graph_infos(n_parts);
   std::vector<std::vector<int>> local_nodes(n_parts);
   std::vector<std::vector<int>> remote_nodes(n_parts);
+  
+  // Part 1: Assign nodes to local partitions
+  auto part1_start_time = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < g.n_nodes; ++i) {
     local_nodes[parts[i]].push_back(i);
   }
+  auto part1_end_time = std::chrono::high_resolution_clock::now();
+  auto part1_duration = std::chrono::duration_cast<std::chrono::milliseconds>(part1_end_time - part1_start_time).count();
+  std::cout << "\tPart 1 (Assign nodes to local partitions): " << part1_duration << " ms\n";
+  
+  // Part 2: Find remote nodes for each partition
+  auto part2_start_time = std::chrono::high_resolution_clock::now();
   auto edge_func = [&parts, &remote_nodes](int u, int v) {
     int bucket_u = parts[u];
     int bucket_v = parts[v];
@@ -411,15 +422,29 @@ CommScheduler::BuildLocalMappingsInternal(Graph &g, int n_parts,
     }
   };
   g.ApplyEdge(edge_func);
+  auto part2_end_time = std::chrono::high_resolution_clock::now();
+  auto part2_duration = std::chrono::duration_cast<std::chrono::milliseconds>(part2_end_time - part2_start_time).count();
+  std::cout << "\tPart 2 (Find remote nodes): " << part2_duration << " ms\n";
+
+  // Part 3: Remove duplicates from remote nodes
+  auto part3_start_time = std::chrono::high_resolution_clock::now();
   for (auto &vec : remote_nodes) {
     UniqueVec(vec);
   }
+  auto part3_end_time = std::chrono::high_resolution_clock::now();
+  auto part3_duration = std::chrono::duration_cast<std::chrono::milliseconds>(part3_end_time - part3_start_time).count();
+  std::cout << "\tPart 3 (Remove duplicates): " << part3_duration << " ms\n";
+  
+  // Part 4: Build mappings
+  auto part4_start_time = std::chrono::high_resolution_clock::now();
   std::vector<std::map<int, int>> mappings(n_parts);
   int remote_cnt = 0;
   for (const auto &r : remote_nodes) {
     remote_cnt += r.size();
   }
   DLOG(INFO) << "Number of remote nodes is " << remote_cnt;
+  
+  #pragma omp parallel for schedule(dynamic)
   for (int i = 0; i < n_parts; ++i) {
     int cnt = 0;
     for (auto u : local_nodes[i]) {
@@ -431,6 +456,15 @@ CommScheduler::BuildLocalMappingsInternal(Graph &g, int n_parts,
     }
     all_local_graph_infos[i].n_nodes = cnt;
   }
+  auto part4_end_time = std::chrono::high_resolution_clock::now();
+  auto part4_duration = std::chrono::duration_cast<std::chrono::milliseconds>(part4_end_time - part4_start_time).count();
+  std::cout << "\tPart 4 (Build mappings): " << part4_duration << " ms\n";
+  
+  // Total time
+  auto total_end_time = std::chrono::high_resolution_clock::now();
+  auto total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(total_end_time - total_start_time).count();
+  std::cout << "Total BuildLocalMappingsInternal time: " << total_duration << " ms\n";
+  
   return {all_local_graph_infos, mappings};
 }
 
