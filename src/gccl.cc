@@ -35,7 +35,7 @@ void PartitionGraph(gcclComm_t comm, int n, int *xadj, int *adjncy,
       LOG(INFO) << "Building mini graph";
       g.mini_graph = std::make_shared<Graph>(mini_n, mini_xadj, mini_adjncy);
       g.mini_graph->node_weights = std::vector<int>(mini_node_weights, mini_node_weights + mini_n);
-      g.mini_graph->edge_weights = std::vector<int>(mini_edge_weights, mini_edge_weights + mini_n);
+      g.mini_graph->edge_weights = std::vector<int>(mini_edge_weights, mini_edge_weights + mini_xadj[mini_n]);
       g.gid2mid = std::vector<int>(mini_gid2mid, mini_gid2mid + n);
     }
   }
