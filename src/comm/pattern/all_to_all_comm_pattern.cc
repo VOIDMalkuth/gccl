@@ -64,6 +64,8 @@ std::vector<CommPatternInfo> AllToAllCommPattern::BuildCommPatternInfos(
     send_off[i].push_back(0);
     recv_off[i].push_back(0);
   }
+
+  #pragma omp parallel for shared(req, local_mappings, send_ids, send_off)
   for (int i = 0; i < n_parts; ++i) {
     for (int j = 0; j < n_parts; ++j) {
       const auto &ids = req.req_ids[i][j];
@@ -77,6 +79,8 @@ std::vector<CommPatternInfo> AllToAllCommPattern::BuildCommPatternInfos(
       max_comm_size = std::max(max_comm_size, size);
     }
   }
+
+  #pragma omp parallel for shared(req, local_mappings, recv_ids, recv_off)
   for (int j = 0; j < n_parts; ++j) {
     for (int i = 0; i < n_parts; ++i) {
       const auto &ids = req.req_ids[i][j];

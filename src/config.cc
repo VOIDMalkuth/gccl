@@ -92,7 +92,7 @@ Config LoadConfig(const std::string& file) {
   if (config.rings.size() > config.n_blocks) {
     config.rings.resize(config.n_blocks);
   }
-  std::string comm_pattern = GetEnvParam("COMM_PATTERN", std::string("GREEDY"));
+  std::string comm_pattern = GetEnvParam("COMM_PATTERN", std::string("ALLTOALL"));
   config.comm_pattern = comm_pattern;
   CheckConfig(config);
   return config;

@@ -226,18 +226,20 @@ void CommScheduler::BuildPartitionInfo(Coordinator *coor, Config *config,
                              per_block_reqs, n_peers, n_blocks);
     auto t2 = GetTime();
     LOG(INFO) << "Using time to allocalte req " << TimeDiff(t0, t1) << " build allgather comm " << TimeDiff(t1, t2);
-    LOG(INFO) << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " us";
+    LOG(INFO) << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " ms";
     std::cout << "Using time to allocalte req " << TimeDiff(t0, t1) << " build allgather comm " << TimeDiff(t1, t2) << std::endl;
-    std::cout << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " us" << std::endl;
+    std::cout << "Using time for SPST algorithm: " << TimeDiff(t1, t2) << " ms" << std::endl;
 
     GetConnPeers(infos, config, n_peers);
   }
   auto t0 = GetTime();
   *info = ScatterCommInfo(coor, infos);
   auto t1 = GetTime();
+  std::cout << "Using time for ScatterCommInfo: " << TimeDiff(t0, t1) << " ms" << std::endl;
   (*info)->Print();
   CommInfoSetupConnection(*info, coor, comm_patterns_);
   auto t2 = GetTime();
+  std::cout << "Using time for CommInfoSetupConnection: " << TimeDiff(t1, t2) << " ms" << std::endl;
   (*info)->CopyGraphInfoToDev();
   CopyCommInfoToDev(*info);
   LOG(INFO) << "Using time to scatter comm info: " << TimeDiff(t0, t1);
