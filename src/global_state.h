@@ -18,6 +18,7 @@ struct GlobalState {
   std::vector<std::unique_ptr<Communicator>> comms;
 
   std::unique_ptr<Config> config;
+  std::unique_ptr<Graph> previous_g;
 };
 
 };  // namespace gccl

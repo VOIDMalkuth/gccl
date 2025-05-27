@@ -181,7 +181,7 @@ void CommScheduler::BuildPartitionInfo(Coordinator *coor, Config *config,
     assert(false);
     LoadCachedPartition(coor, graph_dir, sgn, sg_xadj, sg_adjncy);
   } else if (use_prepart) {
-    LoadPrepartResult(coor, bs, sgn, sg_xadj, sg_adjncy);
+    LoadPrepartResult(coor, bs, g, sgn, sg_xadj, sg_adjncy);
   } else {
     PartitionGraph(coor, g, graph_dir, n_peers, sgn, sg_xadj, sg_adjncy);
   }
@@ -620,6 +620,10 @@ PrePartitionInfo CommScheduler::PrePartitionGraph(int n_peers, Graph &graph) {
 
   PrePartitionInfo pre_part_info;
   pre_part_info.n_peers = n_peers;
+  std::string repart_opt = GetEnvParam("REPART_OPT", std::string("FALSE"));
+  if (repart_opt == "TRUE") {
+    pre_part_info.graph = graph;
+  }
   pre_part_info.pre_parts = pre_parts;
   pre_part_info.pre_all_local_graph_infos = pre_all_local_graph_infos;
   pre_part_info.pre_local_mappings = pre_local_mappings;
@@ -628,7 +632,7 @@ PrePartitionInfo CommScheduler::PrePartitionGraph(int n_peers, Graph &graph) {
   return pre_part_info;
 }
 
-void CommScheduler::LoadPrepartResult(Coordinator *coor, BinStream &bin_stream,
+void CommScheduler::LoadPrepartResult(Coordinator *coor, BinStream &bin_stream, Graph &g,
                                    int *sgn, int **sg_xadj, int **sg_adjncy) {
   int rank = coor->GetRank();
   int n_peers = coor->GetNPeers();
@@ -637,7 +641,13 @@ void CommScheduler::LoadPrepartResult(Coordinator *coor, BinStream &bin_stream,
     int prev_n_peers;
     bin_stream >> prev_n_peers;
     assert(prev_n_peers == n_peers);
-
+    std::string repart_opt = GetEnvParam("REPART_OPT", std::string("FALSE"));
+    if (repart_opt == "TRUE") {
+      bin_stream >> g;
+    } else {
+      Graph new_g;
+      bin_stream >> new_g;
+    }
     bin_stream >> parts_;
     bin_stream >> all_local_graph_infos_;
     bin_stream >> local_mappings_;

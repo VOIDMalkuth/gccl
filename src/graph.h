@@ -32,8 +32,10 @@ struct Graph {
   std::vector<int> adjncy;  // neighbours
   int n_nodes;              // n_nodes_ + 1 == xadj_.size()
   int n_edges;              // n_edges_ == adjncy_.size()
+  int n_parts;
+  std::vector<int> parts;
 
-  std::shared_ptr<Graph> mini_graph; // for partitioning on root node only
+  std::shared_ptr<Graph> mini_graph = nullptr; // for partitioning on root node only
   std::vector<int> gid2mid; // i.e. full_graph_map[i] = j means node i in full graph corresponds to node j in mini graph
   std::vector<int> node_weights;
   std::vector<int> edge_weights; // i.e. each edge represents how much connection a node has

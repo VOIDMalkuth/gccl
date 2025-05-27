@@ -15,6 +15,7 @@ namespace gccl {
 Graph::Graph(int n, const std::vector<std::pair<int, int>> &edges) {
   n_nodes = n;
   n_edges = edges.size();
+  n_parts = 1;
   xadj.push_back(0);
   auto sorted_edges = edges;
   std::sort(sorted_edges.begin(), sorted_edges.end(),
@@ -59,6 +60,7 @@ std::vector<std::pair<int, int>> BuildEdges(int n, int *xadj, int *adjncy) {
 Graph::Graph(int n, int *xadj, int *adjncy) {
   this->n_nodes = n;
   this->n_edges = xadj[n];
+  this->n_parts = 1;
   this->xadj = std::vector<int>(xadj, xadj + n + 1);
   this->adjncy = std::vector<int>(adjncy, adjncy + n_edges);
   // todo: assert this is ordered
@@ -80,7 +82,7 @@ void Graph::WriteToFile(const std::string &file) const {
 }
 
 BinStream &Graph::serialize(BinStream &bs) const {
-  bs << n_nodes << n_edges << xadj << adjncy << gid2mid << node_weights << edge_weights;
+  bs << n_nodes << n_edges << xadj << adjncy << gid2mid << node_weights << edge_weights << n_parts << parts;
   if (mini_graph != nullptr) {
     int flag = 1;
     bs << flag;
@@ -92,7 +94,7 @@ BinStream &Graph::serialize(BinStream &bs) const {
   return bs;
 }
 BinStream &Graph::deserialize(BinStream &bs) {
-  bs >> n_nodes >> n_edges >> xadj >> adjncy >> gid2mid >> node_weights >> edge_weights;
+  bs >> n_nodes >> n_edges >> xadj >> adjncy >> gid2mid >> node_weights >> edge_weights >> n_parts >> parts;
   int flag;
   bs >> flag;
   if (flag) {

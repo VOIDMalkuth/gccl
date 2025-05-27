@@ -7,6 +7,7 @@
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
+#include "global_state.h"
 #include "communicator.h"
 #include "config.h"
 #include "graph.h"
@@ -20,6 +21,8 @@
 using namespace std::chrono;
 
 namespace gccl {
+
+extern GlobalState gccl_global;
 
 void PartitionGraph(gcclComm_t comm, int n, int *xadj, int *adjncy,
                     gcclCommInfo_t *info, int *sgn, int **sg_xadj, int **sg_adjncy,
@@ -48,6 +51,7 @@ void PartitionGraph(gcclComm_t comm, int n, int *xadj, int *adjncy,
   
   comm_sch->BuildPartitionInfo(coor, config, g, "", info, sgn, sg_xadj,
                                sg_adjncy);
+  gccl_global.previous_g = std::make_unique<Graph>(g);
   auto build_part_info_done = system_clock::now();
   std::cout << "Build part info took" << duration_cast<seconds>(build_part_info_done - build_graph_end).count() << "s\n" << std::endl;
 }
@@ -63,6 +67,7 @@ void PartitionGraph(gcclComm_t comm, const char *cached_dir,
   auto build_graph_end = system_clock::now();
   comm_sch->BuildPartitionInfo(coor, config, g, cached_dir, info, sgn, sg_xadj,
                                sg_adjncy);
+  gccl_global.previous_g = std::make_unique<Graph>(g);
   auto build_part_info_done = system_clock::now();
   std::cout << "Build part info took" << duration_cast<seconds>(build_part_info_done - build_graph_end).count() << "s\n" << std::endl;
 }
@@ -83,6 +88,7 @@ void PartitionGraphWithPrepartInfo(gcclComm_t comm, gcclCommInfo_t *info, int *s
   }
   Graph g;
   comm_sch->BuildPartitionInfo(coor, config, g, "", info, sgn, sg_xadj, sg_adjncy, true, bin_stream);
+  gccl_global.previous_g = std::make_unique<Graph>(g);
   auto build_part_info_done = system_clock::now();
   std::cout << "Build part info took" << duration_cast<seconds>(build_part_info_done - begin).count() << "s\n" << std::endl;
 }

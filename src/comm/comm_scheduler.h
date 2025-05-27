@@ -15,6 +15,7 @@ namespace gccl {
 class PrePartitionInfo {
   public:
     int n_peers;
+    Graph graph;
     std::vector<int> pre_parts;
     std::vector<LocalGraphInfo> pre_all_local_graph_infos;
     std::vector<std::map<int, int>> pre_local_mappings;
@@ -24,6 +25,7 @@ class PrePartitionInfo {
 
     BinStream &serialize(BinStream &stream) const {
       stream << n_peers;
+      stream << graph;
       stream << pre_parts;
       stream << pre_all_local_graph_infos;
       stream << pre_local_mappings;
@@ -34,6 +36,7 @@ class PrePartitionInfo {
 
     BinStream &deserialize(BinStream &stream) {
       stream >> n_peers;
+      stream >> graph;
       stream >> pre_parts;
       stream >> pre_all_local_graph_infos;
       stream >> pre_local_mappings;
@@ -93,7 +96,7 @@ class CommScheduler {
 
   static PrePartitionInfo PrePartitionGraph(int n_peers, Graph &graph);
 
-  void LoadPrepartResult(Coordinator *coor, BinStream &bin_stream,
+  void LoadPrepartResult(Coordinator *coor, BinStream &bin_stream, Graph &g,
     int *sgn, int **sg_xadj, int **sg_adjncy);
 
  private:
